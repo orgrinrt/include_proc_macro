@@ -18,4 +18,4 @@ inputs:
     required: false
 runs:
   using: 'node12'
-  main: 'cache_dirs.js'
+  main: 'dist/index.js'
