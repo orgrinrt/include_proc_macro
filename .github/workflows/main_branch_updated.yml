@@ -1,6 +1,8 @@
 name: Main branch updated
 
 on:
+  pull_request:
+    types: [ synchronize, opened, reopened ] # NOTE: probably wont want to leave these for PRs?
   push:
     branches:
       - main
