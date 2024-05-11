@@ -2,17 +2,35 @@ const core = require('@actions/core');
 const cache = require('@actions/cache');
 const glob = require('@actions/glob');
 
+const fs = require('fs');
+const path = require('path'); // Don't forget to import the path module
+
 async function run() {
     try {
         const cachePaths = core.getInput('cache-paths', {required: true}).split(';');
         let keyTemplate = core.getInput('key-template', {required: true});
         const cacheInvalidationPattern = core.getInput('cache-invalidation-pattern', {required: true});
 
+        let pathsExist = false;
+
+        for(const currentPath of cachePaths) {
+            const absolutePath = path.resolve(currentPath); // Convert to absolute path if necessary
+            if(fs.existsSync(absolutePath)){
+                pathsExist = true;
+                break;
+            }
+        }
+
+        if(!pathsExist) {
+            core.warning(`None of the cache paths exist, skipping caching step. Note that the workflow should adapt to this!`);
+            return;
+        }
+        
         const globber = await glob.create(cacheInvalidationPattern);
         const triggerFiles = await globber.glob();
         const hashObj = require('crypto').createHash('sha1');
         for (const file of triggerFiles) {
-            hashObj.update(require('fs').readFileSync(file));
+            hashObj.update(fs.readFileSync(file));
         }
         const hash = '-' + hashObj.digest('hex');
 
