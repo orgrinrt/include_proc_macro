@@ -1,0 +1,39 @@
+name: Crate tests
+
+on:
+  pull_request:
+    types: [synchronize, opened, reopened]
+  workflow_run:
+    workflows: [ "Main branch updated" ]
+    types:
+      - completed
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: |
+      (contains(github.event.head_commit.message, '[ci skip]') == false && 
+      ((contains(toJSON(github.event.commits[*].modified), 'src/')) ||
+      (contains(toJSON(github.event.commits[*].modified), '**/Cargo.toml'))))
+    steps:
+      - name: Init crate workflow
+        uses: ./.github/actions/init_crate_workflow
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          
+      - name: Test if builds
+        run: cargo build
+          
+      - name: Run tests, generate code coverage and save as artifact
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml
+        id: coverage
+
+      - name: Upload coverage to GitHub Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: target/debug/tarpaulin-report.xml
