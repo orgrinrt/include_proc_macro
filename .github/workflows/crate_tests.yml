@@ -16,8 +16,8 @@ jobs:
       ((contains(toJSON(github.event.commits[*].modified), 'src/')) ||
       (contains(toJSON(github.event.commits[*].modified), '**/Cargo.toml'))))
     steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
         
       - name: Init crate workflow
         uses: ./.github/actions/init_crate_workflow
