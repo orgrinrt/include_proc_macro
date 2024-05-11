@@ -1,4 +1,4 @@
-name: Main CI
+name: Crate CI
 
 on:
   pull_request:
@@ -42,11 +42,12 @@ jobs:
         
       - name: Build
         run: cargo build #--release
-          
-  test:
+        
+  check:
     needs: build
     runs-on: ubuntu-latest
     if: |
+      github.ref != 'refs/heads/main' &&
       contains(github.event.head_commit.message, '[ci skip]') == false
     steps:
       - name: Checkout code
@@ -64,7 +65,33 @@ jobs:
 
       - name: Check for warnings
         run: cargo rustc -- -D warnings
+          
+  test:
+    needs: check
+    runs-on: ubuntu-latest
+    if: |
+      github.ref != 'refs/heads/main' &&
+      contains(github.event.head_commit.message, '[ci skip]') == false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
+      - name: Init crate workflow
+        uses: ./.github/actions/init_crate_workflow
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Run tests, generate code coverage and save as artifact
+        run: |
+          cargo test --all
+          
+  test_with_coverage:
+    needs: check
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[ci skip]') == false
+    steps:
       - name: Run tests, generate code coverage and save as artifact
         run: |
           cargo install cargo-tarpaulin
@@ -79,7 +106,7 @@ jobs:
   
   
   docs:
-    needs: test
+    needs: [test, test_with_coverage]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[ci skip]') == false
     steps:
