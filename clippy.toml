@@ -1,4 +1,4 @@
-[clippy]
+#[clippy]
 # Enable all lints that are on by default
 default-features = true
 # Enable additional lints
