@@ -27,7 +27,7 @@ runs:
 #      uses: actions/checkout@v2
 
     - name: Cache Cargo Directories
-      uses: ./.github/actions/cache-cargo
+      uses: ./.github/actions/cache_cargo
       with:
         cache-key-prefix: ${{ inputs.key-prefix }}
 
