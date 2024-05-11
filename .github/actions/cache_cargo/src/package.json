@@ -1,0 +1,21 @@
+{
+  "name": "cache_dirs",
+  "version": "1.0.0",
+  "description": "Caches dirs",
+  "main": "cache_dirs.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git_url_here"
+  },
+  "keywords": ["github", "actions", "cache"],
+  "author": "orgrinrt",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.6.0",
+    "@actions/cache": "^3.0.0",
+    "@actions/glob": "^0.2.0"
+  }
+}
