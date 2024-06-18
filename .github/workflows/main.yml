@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    inputs:
+      ref:
+        description: 'Which tag/branch to use of the external crate_ci workflow'
+        default: "1.0.1"
+        type: string
     secrets:
       CRATES_IO_TOKEN:
         required: false
@@ -12,11 +17,12 @@ on:
 
 jobs:
   call_crate_cicd:
-    uses: orgrinrt/cicd/.github/workflows/crate_ci.yml@v1.0.1
+    uses: orgrinrt/cicd/.github/workflows/crate_ci.yml@${{ inputs.ref }}
     secrets:
       CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
       GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
     with:
+      ref: ${{ inputs.ref }}
       profile: 'minimal'
       toolchain: 'stable'
       override: true
