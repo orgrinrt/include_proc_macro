@@ -12,7 +12,7 @@ on:
 
 jobs:
   call_crate_cicd:
-    uses: orgrinrt/cicd/.github/workflows/crate_ci.yml@1.0.1
+    uses: orgrinrt/cicd/.github/workflows/crate_ci.yml@main
     secrets:
       CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
       GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
