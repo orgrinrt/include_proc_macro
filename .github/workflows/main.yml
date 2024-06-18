@@ -21,5 +21,5 @@ jobs:
       toolchain: 'stable'
       override: true
       deploy: false
-      force_build: true,
-      force_tests: true,
+      force_build: true
+      force_tests: true
