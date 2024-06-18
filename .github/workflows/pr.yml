@@ -22,3 +22,5 @@ jobs:
       override: true
       deploy: false
       tests_path: ''
+      force_build: false
+      force_tests: false
