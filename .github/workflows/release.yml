@@ -29,3 +29,5 @@ jobs:
       override: true
       deploy: true
       tests_path: ''
+      force_build: true
+      force_tests: true
