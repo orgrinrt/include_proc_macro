@@ -20,6 +20,6 @@ jobs:
       profile: 'minimal'
       toolchain: 'stable'
       override: true
-      deploy: false
+      deploy_cratesio: false
       force_build: true
       force_tests: true
