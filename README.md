@@ -5,7 +5,7 @@ include_proc_macro
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues) 
 [![Current Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](https://github.com/orgrinrt/include_proc_macro) 
 
-A simple shorthand for including proc-macro source files in the module tree for IDEs or other similar purposes.
+>A simple shorthand for including proc-macro source files in the module tree for IDEs or other similar purposes.
 
 ---
 
@@ -30,28 +30,9 @@ The main parameter of the macro is:
 
 Please note that this crate only contains the `include_proc_macro` macro. For more details, please refer to the macro definition inside the crate.
 
-The macro is defined as follows:
-
-```rust
-#[macro_export]
-macro_rules! include_proc_macro {
-    ($file_name:expr) => {
-        #[cfg(debug_assertions)]
-        include!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/",
-            $file_name,
-        if $file_name.ends_with(".rs") { "" } else { ".rs" },
-        ));
-    };
-}
-```
-
-The `include_proc_macro!` macro takes in a filename as a parameter and, during development, includes the corresponding `.rs` file from the root of the Cargo project when debug assertions are enabled.
-
 ---
 
-Additionally, include_proc_macro provides two convenient shorthand aliases, `here!` and `named!`, which are designed to be used inline for procedural macros:
+Additionally, include_proc_macro provides two convenient shorthand aliases, `here!` and `named!`:
 
 ```rust 
 include_proc_macro::here!("sample"); 
@@ -59,6 +40,12 @@ include_proc_macro::here!("sample");
 
 Please note that using these aliases will yield the same result as directly using include_proc_macro. They are 
 included for convenience and for prettier code (i.e for when you want to / have to use fully qualified paths).
+
+>Note: 
+> Seeing as (unused) procmacros do not introduce a compile-time or runtime overhead, and the namespace pollution 
+> is both minimal and unlikely to clash or otherwise cause problems, having these 
+> aliases seems okay to me.
+However, if it turns out to be undesirable, we'll hide these behind a feature flag.
 
 ---
 
