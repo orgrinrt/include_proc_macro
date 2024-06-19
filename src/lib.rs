@@ -51,3 +51,52 @@ macro_rules! include_proc_macro {
         ));
     };
 }
+
+#[macro_export]
+/// `here` is an alias of [`include_proc_macro`](crate::include_proc_macro) and serves as shorthand
+/// when working with procedural macros specifically at a local scope. It has the same parameter as
+/// its original:
+/// - `$file_name`: a string literal that represents the name of the proc macro source file (.rs)
+/// to be included in the source tree during dev time.
+///
+/// This alias only makes sense when used inline, such as `include_proc_macro::here!("...")`.
+/// If you intend to use this macro, consider using it fully qualified to avoid unexpected
+/// name clashes if brought into global namespace by `use include_proc_macro::*`.
+///
+/// # Examples
+/// ```
+/// include_proc_macro::here!("sample");
+/// ```
+/// The above line includes `sample.rs` from the root of the Cargo project during a debug
+/// assertion (i.e dev time).
+///
+/// See: [`include_proc_macro`](crate::include_proc_macro)
+macro_rules! here {
+    ($file_name:expr) => {
+        include_proc_macro!($file_name);
+    };
+}
+
+#[macro_export]
+/// `named` is an alias of [`include_proc_macro`](crate::include_proc_macro) and serves as another
+/// shorthand when working with procedural macros specifically to provide more descriptive usage.
+/// It takes the same parameter as its original:
+/// - `$file_name`: a string literal that represents the name of the proc macro source file (.rs)
+/// to be included in the source tree during dev time.
+///
+/// Similar to `here`, this alias is recommended to be used fully qualified such as
+/// `include_proc_macro::named!("...")`, to prevent naming conflicts with `use include_proc_macro::*`.
+///
+/// # Examples
+/// ```
+/// include_proc_macro::named!("sample");
+/// ```
+/// The above line includes `sample.rs` from the root of the Cargo project during a debug
+/// assertion (i.e dev time).
+///
+/// See: [`include_proc_macro`](crate::include_proc_macro)
+macro_rules! named {
+    ($file_name:expr) => {
+        include_proc_macro!($file_name);
+    };
+}
