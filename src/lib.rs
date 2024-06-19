@@ -43,12 +43,7 @@
 macro_rules! include_proc_macro {
     ($file_name:expr) => {
         #[cfg(debug_assertions)]
-        include!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/",
-            $file_name,
-            if $file_name.ends_with(".rs") { "" } else { ".rs" },
-        ));
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $file_name, ".rs"));
     };
 }
 
@@ -99,4 +94,17 @@ macro_rules! named {
     ($file_name:expr) => {
         include_proc_macro!($file_name);
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    include_proc_macro!("tests/hello");
+
+    #[test]
+    fn test_hello_macro() {
+        let h = hello();
+
+        assert_eq!("Hello, world!", h);
+    }
 }
