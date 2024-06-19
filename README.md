@@ -3,7 +3,7 @@ include_proc_macro
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/stargazers) 
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/include_proc_macro)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues) 
-[![Current Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](https://github.com/orgrinrt/include_proc_macro) 
+[![Current Version](https://img.shields.io/badge/version-1.0.0-orange.svg)](https://github.com/orgrinrt/include_proc_macro) 
 
 >A simple shorthand for including proc-macro source files in the module tree for IDEs or other similar purposes.
 
@@ -11,7 +11,9 @@ include_proc_macro
 
 ## Usage
 
-The `include_proc_macro` crate provides a macro designed for easy integration with external tooling, particularly when working with procedural macros.
+The `include_proc_macro` crate provides a macro designed for easy integration with external tooling, particularly 
+when working with procedural macros. It's extremely simple and is primarily useful to reduce boilerplate and prettify 
+procmacro code.
 
 The macro checks if debug assertions are enabled (`#[cfg(debug_assertions)]`). If debug assertions are enabled, it includes a targeted .rs file from the Cargo project's root directory (obtained through the `CARGO_MANIFEST_DIR` environment variable) in the module tree.
 
@@ -22,13 +24,24 @@ In Rust:
 include_proc_macro::include_proc_macro!("sample");
 ```
 
-The above command includes `sample.rs` from the root of the Cargo project during a debug assertion (development time).
+The above command includes `sample.rs` from the root of the Cargo project during a debug assertion (development time)
+. It simply expands to:
+
+```rust
+#[cfg(debug_assertions)]
+include!(
+    concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/",
+        "sample", // <-- arg
+        ".rs"
+    )
+);
+```
 
 The main parameter of the macro is:
 
 - `$file_name`: a string literal representing the name of the procedural macro source file (.rs) to be included in the source tree during development time (this helps to enable certain advanced IDE features).
-
-Please note that this crate only contains the `include_proc_macro` macro. For more details, please refer to the macro definition inside the crate.
 
 ---
 
