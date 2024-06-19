@@ -12,10 +12,15 @@ include_proc_macro
 ## Usage
 
 The `include_proc_macro` crate provides a macro designed for easy integration with external tooling, particularly 
-when working with procedural macros. It's extremely simple and is primarily useful to reduce boilerplate and prettify 
+when working with procedural macros. It's extremely simple, just wraps an `include!` macro call with some sugar, and is 
+primarily useful to reduce 
+boilerplate 
+and prettify 
 procmacro code.
 
-The macro checks if debug assertions are enabled (`#[cfg(debug_assertions)]`). If debug assertions are enabled, it includes a targeted .rs file from the Cargo project's root directory (obtained through the `CARGO_MANIFEST_DIR` environment variable) in the module tree.
+The macro checks if debug assertions are enabled (`#[cfg(debug_assertions)]`). If debug assertions are enabled, it 
+includes a targeted .rs file from the Cargo project's root directory (obtained through the `CARGO_MANIFEST_DIR` 
+environment variable) in the module tree. Simple as that.
 
 ## Example
 
@@ -55,7 +60,7 @@ Please note that using these aliases will yield the same result as directly usin
 included for convenience and for prettier code (i.e for when you want to / have to use fully qualified paths).
 
 >Note: 
-> Seeing as (unused) procmacros do not introduce a compile-time or runtime overhead, and the namespace pollution 
+> Seeing as (unused) macros do not introduce a compile-time or runtime overhead, and the namespace pollution 
 > is both minimal and unlikely to clash or otherwise cause problems, having these 
 > aliases seems okay to me.
 However, if it turns out to be undesirable, we'll hide these behind a feature flag.
