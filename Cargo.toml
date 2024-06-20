@@ -1,7 +1,7 @@
 [package]
 name = "include_proc_macro"
 authors = ["orgrinrt", "Hiisi Digital"]
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 description = """
 The `include_proc_macro` crate provides a macro designed for easy integration with external tooling, 
