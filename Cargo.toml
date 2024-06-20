@@ -1,8 +1,21 @@
 [package]
 name = "include_proc_macro"
 authors = ["orgrinrt", "Hiisi Digital"]
-version = "1.0.0"
+version = "0.0.1"
 edition = "2021"
+description = """
+The `include_proc_macro` crate provides a macro designed for easy integration with external tooling, 
+particularly when working with procedural macros. It's extremely simple, just wraps an `include!` macro call
+with some sugar, and is primarily useful to reduce boilerplate and prettify procmacro code.
+"""
+license = "MIT"
+license-file = "LICENSE"
+readme = "README.md"
+keywords = ["procedural-macros", "proc-macro", "helper", "dev", "shorthand"]
+categories = ["development-tools", "development-tools::procedural-macro-helpers"]
+documentation = "https://docs.rs/include_proc_macro"
+homepage = "https://github.com/orgrinrt/include_proc_macro"
+repository = "https://github.com/orgrinrt/include_proc_macro"
 
 [dependencies]
 
