@@ -26,6 +26,7 @@ environment variable) in the module tree. Simple as that.
 
 In Rust:
 ```rust
+// lib.rs
 include_proc_macro::include_proc_macro!("sample");
 ```
 
@@ -48,8 +49,35 @@ The main parameter of the macro is:
 
 - `$file_name`: a string literal representing the name of the procedural macro source file (.rs) to be included in the source tree during development time (this helps to enable certain advanced IDE features).
 
+### In practice
+
+You'll want to call the macro wherever your environment finds it for the module tree.
+
+Normally this could be, for example, the lib.rs file of the proc-macro crate.
+
 ---
 
+## The problem
+
+For some IDEs or other kinds of programming environments, the module tree is what brings auto-completion
+and other kinds of helpful bits of sugar to the developer and keeps it in sync.
+
+Proc-macro crates, however, are not included in the module tree ordinarily, and have their source
+files in the root of the crate as opposed to lib.rs, so not every environment or application can
+detect them or make sense of them.
+
+This is entirely dependent on situation, but one way of achieving this is to include the proc-macro
+code in a lib.rs file for the proc-macro crate, which makes certain IDEs or other applications "find" it
+and give auto-completion suggestions and documentation etc. for when one works with the proc-macro.
+
+This might not be what you want, and maybe some other way is more suitable for your situation. However,
+this crate exists as a simple way to bridge the gap and allow external tooling to find the connection
+between the proc-macro crate and rest of the code.
+
+
+
+---
+## Extras
 Additionally, include_proc_macro provides two convenient shorthand aliases, `here!` and `named!`:
 
 ```rust 
