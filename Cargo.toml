@@ -6,8 +6,6 @@ edition = "2021"
 
 [dependencies]
 
-
-
 [clippy]
 # Enable all lints that are on by default
 default-features = true
