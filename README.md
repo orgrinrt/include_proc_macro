@@ -16,7 +16,7 @@ when working with procedural macros. It's extremely simple, just wraps an `inclu
 primarily useful to reduce 
 boilerplate 
 and prettify 
-procmacro code.
+proc-macro code.
 
 The macro checks if debug assertions are enabled (`#[cfg(debug_assertions)]`). If debug assertions are enabled, it 
 includes a targeted .rs file from the Cargo project's root directory (obtained through the `CARGO_MANIFEST_DIR` 
@@ -30,8 +30,7 @@ In Rust:
 include_proc_macro::include_proc_macro!("sample");
 ```
 
-The above command includes `sample.rs` from the root of the Cargo project during a debug assertion (development time)
-. It simply expands to:
+The above command includes `sample.rs` from the root of the Cargo project during a debug assertion (development time). It simply expands to:
 
 ```rust
 #[cfg(debug_assertions)]
@@ -47,33 +46,55 @@ include!(
 
 The main parameter of the macro is:
 
-- `$file_name`: a string literal representing the name of the procedural macro source file (.rs) to be included in the source tree during development time (this helps to enable certain advanced IDE features).
+- `$file_name`: a string literal representing the name of the procedural macro source file (.rs) to be included in 
+  the module tree during development time (this situationally helps enabling certain advanced IDE features).
 
 ### In practice
 
-You'll want to call the macro wherever your environment finds it for the module tree.
+You'll want to use the macro in a location that your development tools recognize as part of the module tree. In many 
+cases, this means using it in the `lib.rs` file of the procedural macro crate.
 
-Normally this could be, for example, the lib.rs file of the proc-macro crate.
+> Note:
+> Please remember that you should *not* use or depend on the procedural macro code being exposed beyond the confines 
+> of its crate. This configuration is designed to function in the reverse direction: it introduces features like 
+> auto-completion into the procedural macro crate during development. *That's the reason why we only include them during debug assertions.*
 
 ---
 
 ## The problem
 
-For some IDEs or other kinds of programming environments, the module tree is what brings auto-completion
-and other kinds of helpful bits of sugar to the developer and keeps it in sync.
+For some IDEs or other kinds of programming environments, understanding the module tree is crucial as it improves 
+the developer experience by providing features like auto-completion and stable syncing. This is situational, and the 
+way these are handled vary, but sometimes proc-macros can be a problem.
 
-Proc-macro crates, however, are not included in the module tree ordinarily, and have their source
-files in the root of the crate as opposed to lib.rs, so not every environment or application can
-detect them or make sense of them.
+Simply put, in Rust, the module tree is a hierarchical representation of your code's organization. Every Rust file can 
+act as a module, with submodules nested within, creating a tree-like structure that evolves alongside your project.
 
-This is entirely dependent on situation, but one way of achieving this is to include the proc-macro
-code in a lib.rs file for the proc-macro crate, which makes certain IDEs or other applications "find" it
-and give auto-completion suggestions and documentation etc. for when one works with the proc-macro.
+Procedural macro crates do exist in this module tree. However, their source files often live in the root of the 
+crate and not necessarily inside a `lib.rs` file. Furthermore, they aren't necessarily explicitly declared as modules.
+These deviations from typical Rust code can cause difficulties for development tools that rely on a "conventional" 
+project structure.
 
-This might not be what you want, and maybe some other way is more suitable for your situation. However,
-this crate exists as a simple way to bridge the gap and allow external tooling to find the connection
-between the proc-macro crate and rest of the code.
+This isn't a universal issue, as it relies heavily on how each tool attempts to interpret procedural macros.
 
+One practical workaround is to include the procedural macro code inside a `lib.rs` file within the procedural macro 
+crate, particularly during dev time, so as to not cause problems on release (or other non-debug) builds. This decision 
+might make the macros more 
+accessible to certain development 
+tools, potentially improving discovery, auto-completion, syntax highlighting, and documentation support.
+
+
+**This is what this crate does.**
+
+Alternatively, you could use the `#[path]` attribute along a module definition to point to the source file(s) in 
+the cargo root, which in practice achieves pretty much the same. Some IDEs and environments also just simply work 
+well with proc-macros, so a workaround 
+isn't necessary in the first place.
+
+While the solution provided by this crate is simple and effective, it’s not one-size-fits-all. The best method 
+depends on multiple factors like your tooling setup, personal preference, and the specific needs of your project.
+Still, the existence of this crate provides a simple solution to the problem; to connect your procedural macro crate 
+with the rest of your code, making it more discoverable by external tools.
 
 
 ---
@@ -95,7 +116,7 @@ However, if it turns out to be undesirable, we'll hide these behind a feature fl
 
 ---
 
-## Buy me a coffee
+## Support
 
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
