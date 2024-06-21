@@ -4,9 +4,7 @@ authors = ["orgrinrt", "Hiisi Digital"]
 version = "1.0.3"
 edition = "2021"
 description = """
-The `include_proc_macro` crate provides a macro designed for easy integration with external tooling, 
-particularly when working with procedural macros. It's extremely simple, just wraps an `include!` macro call
-with some sugar, and is primarily useful to reduce boilerplate and prettify procmacro code.
+A simple shorthand for including proc-macro source files in the module tree for external tooling like IDEs or other similar purposes.
 """
 license = "MIT"
 license-file = "LICENSE"
