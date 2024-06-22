@@ -1,5 +1,8 @@
 include_proc_macro
 ============
+
+<div style="text-align: center;">
+
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/stargazers) 
 [![Crates.io Total Downloads](https://img.shields.io/crates/d/include_proc_macro)](https://crates.io/crates/include_proc_macro)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues) 
@@ -7,7 +10,7 @@ include_proc_macro
 
 >A simple shorthand for including proc-macro source files in the module tree for external tooling like IDEs or other similar purposes.
 
-
+</div>
 
 ## Usage
 
