@@ -3,11 +3,8 @@ name:  'Crate: PR'
 on:
   pull_request:
     types: [ synchronize, opened, reopened ]
-    secrets:
-      CRATES_IO_TOKEN:
-        required: false
-      GH_RELEASE_TOKEN:
-        required: false
+    branches:
+      - 'main'
 
 jobs:
   call_crate_cicd:
