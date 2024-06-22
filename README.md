@@ -7,7 +7,7 @@ include_proc_macro
 
 >A simple shorthand for including proc-macro source files in the module tree for external tooling like IDEs or other similar purposes.
 
----
+
 
 ## Usage
 
@@ -59,7 +59,7 @@ cases, this means using it in the `lib.rs` file of the procedural macro crate.
 > of its crate. This configuration is designed to function in the reverse direction: it introduces features like 
 > auto-completion into the procedural macro crate during development. *That's the reason why we only include them during debug assertions.*
 
----
+
 
 ## The problem
 
@@ -97,7 +97,7 @@ Still, the existence of this crate provides a simple solution to the problem; to
 with the rest of your code, making it more discoverable by external tools.
 
 
----
+
 ## Extras
 Additionally, include_proc_macro provides two convenient shorthand aliases, `here!` and `named!`:
 
@@ -114,15 +114,12 @@ included for convenience and for prettier code (i.e for when you want to / have 
 > aliases seems okay to me.
 However, if it turns out to be undesirable, we'll hide these behind a feature flag.
 
----
-
 ## Support
 
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
 <a href="https://buymeacoffee.com/orgrinrt" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 
----
 
 ## License
 >You can check out the full license [here](https://github.com/orgrinrt/include_proc_macro/blob/master/LICENSE)
