@@ -4,11 +4,7 @@ on:
   push:
     branches:
       - main
-    secrets:
-      CRATES_IO_TOKEN:
-        required: false
-      GH_RELEASE_TOKEN:
-        required: false
+  workflow_dispatch:
 
 jobs:
   call_crate_cicd:
