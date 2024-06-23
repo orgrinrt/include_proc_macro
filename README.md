@@ -15,14 +15,11 @@ include_proc_macro
 ## Usage
 
 The `include_proc_macro` crate provides a macro designed for easy integration with external tooling, particularly 
-when working with procedural macros. It's extremely simple, just wraps an `include!` macro call with some sugar, and is 
-primarily useful to reduce 
-boilerplate 
-and prettify 
-proc-macro code.
+when working with procedural macros. It's extremely simple, just wraps an `include!` macro call with some sugar, and is primarily useful to reduce boilerplate and prettify proc-macro code.
 
-The macro checks if debug assertions are enabled (`#[cfg(debug_assertions)]`). If debug assertions are enabled, it 
-includes a targeted .rs file from the Cargo project's root directory (obtained through the `CARGO_MANIFEST_DIR` 
+> Note: `include_proc_macro` is intended to be added as a `dev-dependency`
+
+The macro checks if debug assertions are enabled (`#[cfg(debug_assertions)]`). If debug assertions are enabled, it includes a targeted .rs file from the Cargo project's root directory (obtained through the `CARGO_MANIFEST_DIR` 
 environment variable) in the module tree. Simple as that.
 
 ## Example
@@ -54,8 +51,7 @@ The main parameter of the macro is:
 
 ### In practice
 
-You'll want to use the macro in a location that your development tools recognize as part of the module tree. In many 
-cases, this means using it in the `lib.rs` file of the procedural macro crate.
+You'll want to use the macro in a location that your development tools recognize as part of the module tree. In many cases, this means using it in the `lib.rs` file of the procedural macro crate.
 
 > Note:
 > Please remember that you should *not* use or depend on the procedural macro code being exposed beyond the confines 
