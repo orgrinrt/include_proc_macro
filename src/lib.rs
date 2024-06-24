@@ -17,7 +17,6 @@
 /// ```
 /// The above line includes `sample.rs` from the root of the Cargo project during a debug
 /// assertion (i.e dev time).
-
 macro_rules! include_proc_macro {
     ($file_name:expr) => {
         #[cfg(debug_assertions)]
@@ -43,7 +42,7 @@ macro_rules! include_proc_macro {
 /// See: [`include_proc_macro`](crate::include_proc_macro)
 macro_rules! here {
     ($file_name:expr) => {
-        include_proc_macro!($file_name);
+        $crate::include_proc_macro!($file_name);
     };
 }
 
@@ -65,13 +64,14 @@ macro_rules! here {
 /// See: [`include_proc_macro`](crate::include_proc_macro)
 macro_rules! named {
     ($file_name:expr) => {
-        include_proc_macro!($file_name);
+        $crate::include_proc_macro!($file_name);
     };
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     include_proc_macro!("tests/hello");
 
     #[test]
