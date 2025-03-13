@@ -48,6 +48,14 @@ include_proc_macro::include_proc_macro!(tests/hello);
 
 // Custom module name with explicit path
 include_proc_macro::include_proc_macro!(my_module = "tests/sample");
+
+// From 1.1.1 onwards, you can do it all with a single macro call for even more pretty code
+include_proc_macro::include_proc_macro!(
+    sample,
+    tests/hello,
+    deep/nested/path,
+    my_module = "tests/sample"
+);
 ```
 
 The above commands expand to something like:
@@ -67,6 +75,8 @@ pub mod hello {
 pub mod my_module {
     include!(concat!(env!("CARGO_MANIFEST_DIR"), "/", "tests/sample", ".rs"));
 }
+
+// For multiple modules, each is processed individually as above
 ```
 
 The macro supports several formats:
@@ -75,6 +85,7 @@ The macro supports several formats:
 - `$dir:ident / $module:ident`: Directory and module name as identifiers
 - `$first:ident / $second:ident / $($rest:ident)/+`: Nested path structure with multiple identifiers
 - `$module_name:ident = $path:literal`: Explicit module name with a string literal path
+- 1.1.1 Onwards also multiple entries separated by commas: Include multiple modules in a single macro call
 
 ### In practice
 
@@ -121,6 +132,13 @@ include_proc_macro::named!(tests/hello);
 
 // Custom module name with explicit path
 include_proc_macro::named!(my_module = "tests/sample");
+
+// Multiple modules at once
+include_proc_macro::named!(
+    sample, 
+    tests/hello, 
+    my_module = "tests/sample"
+);
 ```
 
 Please note that using this alias will yield the same result as directly using include_proc_macro. It is included for convenience and for prettier code (i.e for when you want to / have to use fully qualified paths).
