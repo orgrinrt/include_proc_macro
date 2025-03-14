@@ -4,26 +4,26 @@ authors = ["orgrinrt", "Hiisi Digital"]
 version = "1.1.1"
 edition = "2021"
 description = """
-A simple shorthand for including proc-macro source files in the module tree for external tooling like IDEs or other similar purposes.
+A convenient shorthand for working with multiple procedural macros in one crate, also to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 """
-license = "MIT"
 license-file = "LICENSE"
 readme = "README.md"
-keywords = ["procedural-macros", "proc-macro", "helper", "dev", "shorthand"]
+keywords = ["procedural-macros", "proc-macro", "derive", "attribute-macros", "macro-helpers"]
 categories = ["development-tools", "development-tools::procedural-macro-helpers"]
 documentation = "https://docs.rs/include_proc_macro"
 homepage = "https://github.com/orgrinrt/include_proc_macro"
 repository = "https://github.com/orgrinrt/include_proc_macro"
 
+[workspace]
+members = [
+    "macro_test",
+    "integration_test"
+]
 
 [dependencies]
 
-
 [clippy]
-# Enable all lints that are on by default
 default-features = true
-# Enable additional lints
-# (replace `+` with `-` to disable specific lints)
 extra-plugins = [
     "clippy::pedantic",
     "clippy::cargo",
