@@ -17,7 +17,7 @@ include_proc_macro
 The
 `include_proc_macro` crate provides utilities that make working with procedural macros simpler and more convenient. It offers a simple, comparatively pretty syntax for defining function-like macros, attribute macros, and derive macros, along with flexible options for importing their implementations.
 
-### Breaking Changes in 2.0.0
+### Breaking changes in 2.0.0
 
 Version 2.0.0 completely overhauls the api and the way the macros are used:
 
