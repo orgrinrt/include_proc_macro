@@ -4,7 +4,7 @@ authors = ["orgrinrt", "Hiisi Digital"]
 version = "2.0.0"
 edition = "2021"
 description = """
-A convenient shorthand for working with multiple procedural macros in one crate, also to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
+A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 """
 license-file = "LICENSE"
 readme = "README.md"

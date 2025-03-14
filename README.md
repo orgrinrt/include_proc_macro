@@ -8,7 +8,7 @@ include_proc_macro
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
 [![Current Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
 
-> A convenient shorthand for working with multiple procedural macros in one crate, also to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
+> A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 
 </div>
 
@@ -30,8 +30,8 @@ include_proc_macro!::include_proc_macro!(
 // this would often cause name clashes, competing implementations
 // and other issues, and was fairly unusable/unneeded outside of very niche applications.
 // it was also only for including external macros from arbitrary paths,
-// which still resulted in you having to be verbose with those in the macro crate's 
-// module tree
+// which still resulted in you having to be verbose or otherwise tricky with other macros
+// in the crate's .module tree
 ```
 
 For better readability, increased control, and making use of different types of proc macros in a single crate easier, the syntax evolved thus:
@@ -44,7 +44,7 @@ include_proc_macro!::macros!(
     // "just works" with normal module paths
     attribute -> any::amount::of:nested::mods::attr_impl,
     // with a `@` prefix we can more conveniently include macro implementations from 
-    // paths outside the source directory, such as tests
+    // paths at custom source dir within the crate, such as tests
     derive(MacroName) -> @"this/path/is/relative/to/crate/root"::derive_impl 
 );
 // now we hide implementation details within modules, and delegate to them
@@ -75,12 +75,12 @@ macros!(
     derive(DisplayImpl) -> derive_impl::implement_display,
 
     // include external files like so: 
-    function -> "path/to/file" :: function_name,
+    function -> "path/to/file"::function_name,
     // with `@` prefix for paths relative to crate root
-    attribute -> @"another/path" :: attr_function,
+    attribute -> @"custom/src_dir"::attr_function,
     // the path can be absolute too, but there are considerations outside of this 
     // crate's scope to think over. go wild I suppose
-    derive(DefaultImpl) -> "/users/user/dev/macros" :: default_impl
+    derive(DefaultImpl) -> "/users/user/dev/macros"::default_impl
 );
 ```
 
@@ -92,20 +92,18 @@ lot* of boilerplate, though the average case would likely not have so many macro
 This crate significantly reduces the boilerplate needed when creating procedural macros. Instead of writing out each proc macro definition, repetitively, with their proper attributes and function signatures, you can use the concise
 `macros!` syntax to define them all without thinking about the boilerplate.
 
-The ability to import implementations from external files can be useful for some use cases, such as when you want to keep your macro implementations separate from the main codebase, for whatever reason, or allow for external codegen injection, which you probably shouldn't do, but you can, and now it's prettier too.
+The ability to import implementations from external files can be useful for some use cases, such as when you want to keep your macro implementations separate from the main codebase, for whatever reason, or allow for external proc macro injection.
 
 ## The problem
 
-Rust's procedural macro system requires all procedural macros to be defined at the crate root with specific attributes (`#[proc_macro]`,
-`#[proc_macro_attribute]`, or
-`#[proc_macro_derive]`). This can lead to gigantic, hard-to-navigate root module, and even if avoiding that by doing it like this crate does under-the-hood, still very verbose and repetitive code. Rhe restriction that proc macro attributes can only be applied at the crate root makes it challenging to organize larger codebases with multiple macro implementations.
+Rust's procedural macro system requires all procedural macros to be defined at the crate root. This can lead to a gigantic, hard-to-navigate root module, and even if avoiding that some way, maybe by separating impls from the macro declarations like this crate does under-the-hood, still very verbose and repetitive code. It just makes it challenging to organize larger codebases with multiple macro implementations, if you want to keep them in the same crate.
 
 This crate solves these problems by:
 
 1. Providing a concise, declarative syntax for defining all types of procedural macros
 2. Supporting imports from various module paths and even external files
-3. Allowing for custom naming of macros separate from their implementation functions
-4. Enabling batch definitions to reduce repetition
+3. Allowing for custom naming of macros separate from their implementation
+4. Enabling batch definitions for much prettier and more readable root module
 
 This is all done via the macro, at compile time, so there are no runtime overhead or other similar implications to consider. The compilation time is slightly increased (due to this dependency), but this is of course only for your proc macro crate, and not for the actual code that uses the macros. For most use cases, you won't notice any side effects.
 
