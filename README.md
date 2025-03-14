@@ -8,146 +8,106 @@ include_proc_macro
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
 [![Current Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
 
-> A simple shorthand for including proc-macro source files in the module tree for external tooling like IDEs or other
-> similar purposes.
+> A convenient shorthand for working with multiple procedural macros in one crate, also to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 
 </div>
 
 ## Usage
 
 The
-`include_proc_macro` crate provides a macro designed for easy integration with external tooling, particularly when working with procedural macros. It's extremely simple, just wraps an
-`include!` macro call with some sugar, and is primarily useful to reduce boilerplate and prettify proc-macro code.
+`include_proc_macro` crate provides utilities that make working with procedural macros simpler and more convenient. It offers a simple, comparatively pretty syntax for defining function-like macros, attribute macros, and derive macros, along with flexible options for importing their implementations.
 
-> Note: `include_proc_macro` is intended to be added as a `dependency`, though it is only a dev-time dependency. The
-> macro itself returns nothing outside of debug assertions, and the compiler is intelligent enough to ignore it, so
-> in practice it achieves the same, though it has to be available.
+### Breaking Changes in 2.0.0
 
-The macro checks if debug assertions are enabled (
-`#[cfg(debug_assertions)]`). If debug assertions are enabled, it includes a targeted .rs file from the Cargo project's root directory (obtained through the
-`CARGO_MANIFEST_DIR`
-environment variable) in the module tree. Simple as that.
+Version 2.0.0 completely overhauls the api and the way the macros are used:
 
-### Breaking Changes in 1.1.0
+```rust
+// old:
+include_proc_macro!::include_proc_macro!(
+    "some/path/to/file",
+    alternatively / using / idents
+);
+// this would often cause name clashes, competing implementations
+// and other issues, and was fairly unusable/unneeded outside of very niche applications.
+// it was also only for including external macros from arbitrary paths,
+// which still resulted in you having to be verbose with those in the macro crate's 
+// module tree
+```
 
-Version 1.1.0 introduces breaking changes in how paths are specified:
+For better readability, increased control, and making use of different types of proc macros in a single crate easier, the syntax evolved thus:
 
-- Direct string literal paths (e.g., `include_proc_macro!("sample")`) are no longer supported
-- You must either use path identifiers or explicit module naming with string literals
+```rust
+// new:
+include_proc_macro!::macros!(
+    // literal paths are still supported (relative and absolute)
+    function -> "old/style/literal/path/inclusion"::macro_impl,
+    // "just works" with normal module paths
+    attribute -> any::amount::of:nested::mods::attr_impl,
+    // with a `@` prefix we can more conveniently include macro implementations from 
+    // paths outside the source directory, such as tests
+    derive(MacroName) -> @"this/path/is/relative/to/crate/root"::derive_impl 
+);
+// now we hide implementation details within modules, and delegate to them
+// within the crate root. should be fairly clash-free, and handles
+// pretty much all the macros you'd want in a single proc-macro crate
+```
 
 ## Example
 
-In Rust:
-
 ```rust
-// Module name same as file name
-include_proc_macro::include_proc_macro!(sample);
+use include_proc_macro::macros;
 
-// Module in a subdirectory
-include_proc_macro::include_proc_macro!(tests/hello);
+// we can define multiple macros in a single go, separated by commas
+macros!(
+    // for normal function-like proc macros we use `function`
+    function -> implement::generate_function,
+    // can define explicit custom macro names. here the macro would be `my_macro_name`
+    // (otherwise we just inherit the name of the function)
+    function(my_macro_name) -> implement::another_function, 
 
-// Custom module name with explicit path
-include_proc_macro::include_proc_macro!(my_module = "tests/sample");
+    // with the `attribute` keyword, we can define attribute macros
+    attribute -> attr_impl::generate_attr,
+    attribute(custom_attr) -> attr_impl::custom_implementation,
 
-// From 1.1.1 onwards, you can do it all with a single macro call for even more pretty code
-include_proc_macro::include_proc_macro!(
-    sample,
-    tests/hello,
-    deep/nested/path,
-    my_module = "tests/sample"
+    // `derive` is for derive macros, and the name in parentheses is the actual derive name
+    // (the function name will be inherited from source module, but is seldom needed)
+    derive(DebugImpl) -> derive_impl::implement_debug,
+    derive(DisplayImpl) -> derive_impl::implement_display,
+
+    // include external files like so: 
+    function -> "path/to/file" :: function_name,
+    // with `@` prefix for paths relative to crate root
+    attribute -> @"another/path" :: attr_function,
+    // the path can be absolute too, but there are considerations outside of this 
+    // crate's scope to think over. go wild I suppose
+    derive(DefaultImpl) -> "/users/user/dev/macros" :: default_impl
 );
 ```
 
-The above commands expand to something like:
-
-```rust
-#[cfg(debug_assertions)]
-pub mod sample {
-    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/", "sample", ".rs"));
-}
-
-#[cfg(debug_assertions)]
-pub mod hello {
-    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/", "tests", "/", "hello", ".rs"));
-}
-
-#[cfg(debug_assertions)]
-pub mod my_module {
-    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/", "tests/sample", ".rs"));
-}
-
-// For multiple modules, each is processed individually as above
-```
-
-The macro supports several formats:
-
-- `$module:ident`: A single identifier representing the module name, which is also used as the file path
-- `$dir:ident / $module:ident`: Directory and module name as identifiers
-- `$first:ident / $second:ident / $($rest:ident)/+`: Nested path structure with multiple identifiers
-- `$module_name:ident = $path:literal`: Explicit module name with a string literal path
-- 1.1.1 Onwards also multiple entries separated by commas: Include multiple modules in a single macro call
+Though it doesn't look like much, this would save you *a
+lot* of boilerplate, though the average case would likely not have so many macros defined in a single crate. But hey, you can do it if you want to, and now it won't look like a mess.
 
 ### In practice
 
-You'll want to use the macro in a location that your development tools recognize as part of the module tree. In many cases, this means using it in the
-`lib.rs` file of the procedural macro crate.
+This crate significantly reduces the boilerplate needed when creating procedural macros. Instead of writing out each proc macro definition, repetitively, with their proper attributes and function signatures, you can use the concise
+`macros!` syntax to define them all without thinking about the boilerplate.
 
-> Note:
-> Please remember that you should *not* use or depend on the procedural macro code being exposed beyond the confines
-> of its crate. This configuration is designed to function in the reverse direction: it introduces features like
-> auto-completion into the procedural macro crate during development. *That's the reason why we only include them during debug assertions.*
+The ability to import implementations from external files can be useful for some use cases, such as when you want to keep your macro implementations separate from the main codebase, for whatever reason, or allow for external codegen injection, which you probably shouldn't do, but you can, and now it's prettier too.
 
 ## The problem
 
-For some IDEs or other kinds of programming environments, understanding the module tree is crucial as it improves the developer experience by providing features like auto-completion and stable syncing. This is situational, and the way these are handled vary, but sometimes proc-macros can be a problem.
+Rust's procedural macro system requires all procedural macros to be defined at the crate root with specific attributes (`#[proc_macro]`,
+`#[proc_macro_attribute]`, or
+`#[proc_macro_derive]`). This can lead to gigantic, hard-to-navigate root module, and even if avoiding that by doing it like this crate does under-the-hood, still very verbose and repetitive code. Rhe restriction that proc macro attributes can only be applied at the crate root makes it challenging to organize larger codebases with multiple macro implementations.
 
-Simply put, in Rust, the module tree is a hierarchical representation of your code's organization. Every Rust file can act as a module, with submodules nested within, creating a tree-like structure that evolves alongside your project.
+This crate solves these problems by:
 
-Procedural macro crates do exist in this module tree. However, their source files often live in the root of the crate and not necessarily inside a
-`lib.rs` file. Furthermore, they aren't necessarily explicitly declared as modules. These deviations from typical Rust code can cause difficulties for development tools that rely on a "conventional"
-project structure.
+1. Providing a concise, declarative syntax for defining all types of procedural macros
+2. Supporting imports from various module paths and even external files
+3. Allowing for custom naming of macros separate from their implementation functions
+4. Enabling batch definitions to reduce repetition
 
-This isn't a universal issue, as it relies heavily on how each tool attempts to interpret procedural macros.
-
-One practical workaround is to include the procedural macro code inside a
-`lib.rs` file within the procedural macro crate, particularly during dev time, so as to not cause problems on release (or other non-debug) builds. This decision might make the macros more accessible to certain development tools, potentially improving discovery, auto-completion, syntax highlighting, and documentation support.
-
-**This is what this crate does.**
-
-Alternatively, you could use the
-`#[path]` attribute along a module definition to point to the source file(s) in the cargo root, which in practice achieves pretty much the same. Some IDEs and environments also just simply work well with proc-macros, so a workaround isn't necessary in the first place.
-
-While the solution provided by this crate is simple and effective, it's not one-size-fits-all. The best method depends on multiple factors like your tooling setup, personal preference, and the specific needs of your project. Still, the existence of this crate provides a simple solution to the problem; to connect your procedural macro crate with the rest of your code, making it more discoverable by external tools.
-
-## Extras
-
-Additionally, include_proc_macro provides a convenient shorthand alias, `named!`:
-
-```rust
-// Module name same as file name
-include_proc_macro::named!(sample);
-
-// Module in a subdirectory
-include_proc_macro::named!(tests/hello);
-
-// Custom module name with explicit path
-include_proc_macro::named!(my_module = "tests/sample");
-
-// Multiple modules at once
-include_proc_macro::named!(
-    sample, 
-    tests/hello, 
-    my_module = "tests/sample"
-);
-```
-
-Please note that using this alias will yield the same result as directly using include_proc_macro. It is included for convenience and for prettier code (i.e for when you want to / have to use fully qualified paths).
-
-> Note:
-> Seeing as (unused) macros do not introduce a compile-time or runtime overhead, and the namespace pollution
-> is both minimal and unlikely to clash or otherwise cause problems, having these
-> aliases seems okay to me.
-> However, if it turns out to be undesirable, we'll hide these behind a feature flag.
+This is all done via the macro, at compile time, so there are no runtime overhead or other similar implications to consider. The compilation time is slightly increased (due to this dependency), but this is of course only for your proc macro crate, and not for the actual code that uses the macros. For most use cases, you won't notice any side effects.
 
 ## Support
 
