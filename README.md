@@ -15,7 +15,7 @@ include_proc_macro
 ## Usage
 
 The
-`include_proc_macro` crate provides utilities that make working with procedural macros simpler and more convenient. It offers a simple, comparatively pretty syntax for defining function-like macros, attribute macros, and derive macros, along with flexible options for importing their implementations.
+`include_proc_macro` crate provides utilities that make working with procedural macros simpler and more convenient. It offers a simple, comparatively pretty syntax for defining multiples of function-like macros, attribute macros, and derive macros, in a single crate, along with flexible options for importing their implementations.
 
 ### Breaking changes in 2.0.0
 
@@ -89,14 +89,16 @@ lot* of boilerplate, though the average case would likely not have so many macro
 
 ### In practice
 
-This crate significantly reduces the boilerplate needed when creating procedural macros. Instead of writing out each proc macro definition, repetitively, with their proper attributes and function signatures, you can use the concise
+This crate reduces the boilerplate needed when working with procedural macros, especially if there are many of them in a large codebase.
+
+Instead of writing out each proc macro definition by explicitly delegating to its implementation, in the crate root, repetitively, with all the proper attributes and function signatures, you can instead just use the
 `macros!` syntax to define them all without thinking about the boilerplate.
 
-The ability to import implementations from external files can be useful for some use cases, such as when you want to keep your macro implementations separate from the main codebase, for whatever reason, or allow for external proc macro injection.
+Also, the ability to fairly cleanly import implementations from external files can be useful for some use cases, such as when you want to keep your macro implementations separate from the main codebase, for whatever reason, have procedural macro tests and want to organize them better, or something wild like allow for external proc macro injection.
 
 ## The problem
 
-Rust's procedural macro system requires all procedural macros to be defined at the crate root. This can lead to a gigantic, hard-to-navigate root module, and even if avoiding that some way, maybe by separating impls from the macro declarations like this crate does under-the-hood, still very verbose and repetitive code. It just makes it challenging to organize larger codebases with multiple macro implementations, if you want to keep them in the same crate.
+Rust's procedural macro system requires all procedural macros to be defined at the crate root. This can lead to a gigantic, hard-to-navigate root module, and even if avoiding that some way, e.g by separating impls from the macro declarations like this crate does under-the-hood, it's all still very verbose and repetitive to write. It's a little bit tedious to organize larger proc macro codebases with multiple kinds of macro implementations, if you want to keep them in the same crate.
 
 This crate solves these problems by:
 
