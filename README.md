@@ -6,7 +6,7 @@ include_proc_macro
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/stargazers)
 [![Crates.io Total Downloads](https://img.shields.io/crates/d/include_proc_macro)](https://crates.io/crates/include_proc_macro)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
-[![Current Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
+[![Current Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
 
 > A convenient shorthand for working with multiple procedural macros in one crate, also to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 
