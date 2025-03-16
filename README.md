@@ -31,7 +31,7 @@ include_proc_macro!::include_proc_macro!(
 // and other issues, and was fairly unusable/unneeded outside of very niche applications.
 // it was also only for including external macros from arbitrary paths,
 // which still resulted in you having to be verbose or otherwise tricky with other macros
-// in the crate's .module tree
+// in the crate's module tree
 ```
 
 For better readability, increased control, and making use of different types of proc macros in a single crate easier, the syntax evolved thus:
@@ -63,7 +63,7 @@ macros!(
     function -> implement::generate_function,
     // can define explicit custom macro names. here the macro would be `my_macro_name`
     // (otherwise we just inherit the name of the function)
-    function(my_macro_name) -> implement::another_function, 
+    function(my_macro_name) -> implement::another_function,
 
     // with the `attribute` keyword, we can define attribute macros
     attribute -> attr_impl::generate_attr,
@@ -73,12 +73,17 @@ macros!(
     // (the function name will be inherited from source module, but is seldom needed)
     derive(DebugImpl) -> derive_impl::implement_debug,
     derive(DisplayImpl) -> derive_impl::implement_display,
+    
+    // derive macros with helper attributes can be specified with the attributes() syntax
+    derive(NodeTypeChecks, attributes(node_category)) -> derive_impl_with_attrs::impl_with_attributes,
+    // you can specify multiple helper attributes by separating them with commas
+    derive(ComplexMacro, attributes(field, skip, rename)) -> derive_complex::implementation,
 
-    // include external files like so: 
+    // include external files like so:
     function -> "path/to/file"::function_name,
     // with `@` prefix for paths relative to crate root
     attribute -> @"custom/src_dir"::attr_function,
-    // the path can be absolute too, but there are considerations outside of this 
+    // the path can be absolute too, but there are considerations outside of this
     // crate's scope to think over. go wild I suppose
     derive(DefaultImpl) -> "/users/user/dev/macros"::default_impl
 );
