@@ -38,7 +38,7 @@ For better readability, increased control, and making use of different types of 
 
 ```rust
 // new:
-include_proc_macro!::macros!(
+include_proc_macro::macros!(
     // literal paths are still supported (relative and absolute)
     function -> "old/style/literal/path/inclusion"::macro_impl,
     // "just works" with normal module paths
