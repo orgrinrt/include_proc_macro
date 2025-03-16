@@ -92,6 +92,85 @@ macros!(
 Though it doesn't look like much, this would save you *a
 lot* of boilerplate, though the average case would likely not have so many macros defined in a single crate. But hey, you can do it if you want to, and now it won't look like a mess.
 
+### Comparison
+
+<details>
+<summary>Click to expand a comparison</summary>
+
+This is short and sweet bit is what we can have, if we use this crate:
+
+```rust
+macros!(
+    function -> foo::bar,
+    attribute(generate_documentation) -> attr_impl::gen_doc,
+    derive(DefaultImpl) -> derive_impl::impl_default,
+    derive(NodeTypeChecks, attributes(node_category)) -> derive_impl_with_attrs::impl_with_attributes,
+    derive(Validate, attributes(required, length, range)) -> derive_multiple_attrs::generate_validation
+    function(fizz) -> foo::fizzbuzz,
+    function(greet) -> "hello.rs"::hello,
+    attribute(derive_debug) -> @"test/inner.rs"::attr_derive_debug,
+    derive(DisplayImpl) -> @"test/subdir/subdir.rs"::generate_display_impl,
+);
+```
+
+Otherwise it could look something like this:
+
+```rust
+mod foo;
+mod attr_impl;
+mod derive_impl;
+mod derive_impl_with_attrs;
+mod derive_multiple_attrs;
+
+#[proc_macro]
+pub fn bar(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    foo::bar(input)
+}
+#[proc_macro_attribute]
+pub fn generate_documentation(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    attr_impl::gen_doc(attr, item)
+}
+#[proc_macro_derive(DefaultImpl)]
+pub fn impl_default(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_impl::impl_default(input)
+}
+#[proc_macro_derive(NodeTypeChecks, attributes(node_category))]
+pub fn impl_with_attributes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_impl_with_attrs::impl_with_attributes(input)
+}
+#[proc_macro_derive(Validate, attributes(required, length, range))]
+pub fn generate_validation(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_multiple_attrs::generate_validation(input)
+}
+#[proc_macro]
+pub fn fizz(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    foo::fizzbuzz(input)
+}
+#[proc_macro]
+pub fn greet(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    #[path = "hello.rs"]
+    mod __inner;
+    __inner::greet(input)
+}
+#[proc_macro_attribute]
+pub fn derive_debug(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    mod __inner {
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "test/inner.rs"));
+    }
+    __inner::derive_debug(input)
+}
+#[allow(non_snake_case)]
+#[proc_macro_derive(DisplayImpl)]
+pub fn DisplayImpl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    mod __inner {
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "test/subdir/subdir.rs"));
+    }
+    __inner::generate_display_impl(input)
+}
+```
+
+</details>
+
 ### In practice
 
 This crate reduces the boilerplate needed when working with procedural macros, especially if there are many of them in a large codebase.
