@@ -23,7 +23,7 @@ Version 2.0.0 completely overhauls the api and the way the macros are used:
 
 ```rust
 // old:
-include_proc_macro!::include_proc_macro!(
+include_proc_macro::include_proc_macro!(
     "some/path/to/file",
     alternatively / using / idents
 );
