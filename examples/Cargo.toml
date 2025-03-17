@@ -1,5 +1,5 @@
 [package]
-name = "macro_test"
+name = "examples"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,6 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-include_proc_macro = { path = ".." }
+include_proc_macro = { path = "./.." }
 syn = { version = "2.0" }
 quote = { version = "1.0" }

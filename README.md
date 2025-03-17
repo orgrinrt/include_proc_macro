@@ -6,7 +6,7 @@ include_proc_macro
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/stargazers)
 [![Crates.io Total Downloads](https://img.shields.io/crates/d/include_proc_macro)](https://crates.io/crates/include_proc_macro)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
-[![Current Version](https://img.shields.io/badge/version-2.0.5-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
+[![Current Version](https://img.shields.io/badge/version-2.0.6-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
 
 > A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 
@@ -17,7 +17,29 @@ include_proc_macro
 The
 `include_proc_macro` crate provides utilities that make working with procedural macros simpler and more convenient. It offers a simple, comparatively pretty syntax for defining multiples of function-like macros, attribute macros, and derive macros, in a single crate, along with flexible options for importing their implementations.
 
-### Breaking changes in 2.0.0
+### Important changes in 2.0.6
+
+Version 2.0.6 introduces several new syntax options to give you more control over how modules are handled:
+
+- The `use` keyword tells the macro that you've already imported or defined the module, so it should just use it without redeclaring it
+- The explicit `mod` keyword makes it clear that this line declares the module (default behavior, but now can be explicit)
+- When no keyword is present, `mod` is implicitly used (maintaining backward compatibility)
+
+```rust
+macros!(
+    // using an already imported module
+    function(my_macro) -> use already_imported_module::function,
+    // explicitly declaring a module
+    function(another_macro) -> mod explicit_module::function,
+    // default behavior (implicitly using mod, this is the old behaviour)
+    function(third_macro) -> implicit_module::function
+);
+```
+
+### Previous version notes
+
+<details>
+<summary>Breaking changes in 2.0.0</summary>
 
 Version 2.0.0 completely overhauls the api and the way the macros are used:
 
@@ -52,6 +74,8 @@ include_proc_macro::macros!(
 // pretty much all the macros you'd want in a single proc-macro crate
 ```
 
+</details>
+
 ## Example
 
 ```rust
@@ -79,6 +103,15 @@ macros!(
     // you can specify multiple helper attributes by separating them with commas
     derive(ComplexMacro, attributes(field, skip, rename)) -> derive_complex::implementation,
 
+    // for already imported modules, use the `use` keyword
+    function(imported_fn) -> use preexisting_mod::function_impl,
+    attribute(imported_attr) -> use imported_attr_mod::attr_impl,
+    derive(ImportedDerive, attributes(helper)) -> use imported_derive_mod::derive_impl,
+    
+    // can explicitly declare modules with the `mod` keyword for readability/clarity
+    function(explicit_fn) -> mod explicit_mod::function_impl,
+    attribute(explicit_attr) -> mod explicit_attr_mod::attr_impl,
+    
     // include external files like so:
     function -> "path/to/file"::function_name,
     // with `@` prefix for paths relative to crate root
@@ -105,11 +138,15 @@ macros!(
     attribute(generate_documentation) -> attr_impl::gen_doc,
     derive(DefaultImpl) -> derive_impl::impl_default,
     derive(NodeTypeChecks, attributes(node_category)) -> derive_impl_with_attrs::impl_with_attributes,
-    derive(Validate, attributes(required, length, range)) -> derive_multiple_attrs::generate_validation
+    derive(Validate, attributes(required, length, range)) -> derive_multiple_attrs::generate_validation,
     function(fizz) -> foo::fizzbuzz,
     function(greet) -> "hello.rs"::hello,
     attribute(derive_debug) -> @"test/inner.rs"::attr_derive_debug,
     derive(DisplayImpl) -> @"test/subdir/subdir.rs"::generate_display_impl,
+    // using the new module handling syntax:
+    function(reuse_module) -> use already_imported::reuse_func,
+    attribute(explicit_mod) -> mod explicitly_declared::attr_func,
+    derive(ImportedMacro) -> use imported_derive_mod::derive_func
 );
 ```
 
@@ -121,6 +158,9 @@ mod attr_impl;
 mod derive_impl;
 mod derive_impl_with_attrs;
 mod derive_multiple_attrs;
+use already_imported;
+use imported_derive_mod;
+mod explicitly_declared;
 
 #[proc_macro]
 pub fn bar(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -150,22 +190,34 @@ pub fn fizz(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn greet(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     #[path = "hello.rs"]
     mod __inner;
-    __inner::greet(input)
+    __inner::hello(input)
 }
 #[proc_macro_attribute]
 pub fn derive_debug(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     mod __inner {
-        include!(concat!(env!("CARGO_MANIFEST_DIR"), "test/inner.rs"));
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/test/inner.rs"));
     }
-    __inner::derive_debug(input)
+    __inner::attr_derive_debug(attr, item)
 }
 #[allow(non_snake_case)]
 #[proc_macro_derive(DisplayImpl)]
 pub fn DisplayImpl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     mod __inner {
-        include!(concat!(env!("CARGO_MANIFEST_DIR"), "test/subdir/subdir.rs"));
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/test/subdir/subdir.rs"));
     }
     __inner::generate_display_impl(input)
+}
+#[proc_macro]
+pub fn reuse_module(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    already_imported::reuse_func(input)
+}
+#[proc_macro_attribute]
+pub fn explicit_mod(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    explicitly_declared::attr_func(attr, item)
+}
+#[proc_macro_derive(ImportedMacro)]
+pub fn ImportedMacro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    imported_derive_mod::derive_func(input)
 }
 ```
 
