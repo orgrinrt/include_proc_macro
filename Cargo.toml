@@ -16,7 +16,7 @@ repository = "https://github.com/orgrinrt/include_proc_macro"
 
 [workspace]
 members = [
-    "macro_test",
+    "examples",
     "integration_test"
 ]
 

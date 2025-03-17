@@ -8,37 +8,61 @@
 /// - Nested modules: `proc_macro!(name -> a::b::c::function)`
 /// - Literal path: `proc_macro!(name -> "path/to/file.rs"::function)`
 /// - Crate-relative path: `proc_macro!(name -> @"path/from/crate/root.rs"::function)`
+///
+/// See: [`macros!`](crate::macros)
 #[macro_export]
 macro_rules! proc_macro {
-    // direct function reference
-    ($name:ident -> $func:ident) => {
+    // base implementation for direct function reference with explicit use keyword
+    ($name:ident ->  use $func:ident) => {
         #[proc_macro]
         pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             $func(input)
         }
     };
+    // shorthand that delegates to module pattern
+    ($name:ident -> $func:ident) => {
+        $crate::proc_macro!($name -> mod $func);
+    };
 
-    // module reference
-    ($name:ident -> $module:ident :: $func:ident) => {
-        mod $module;
-
+    // base implementation for using existing modules
+    ($name:ident -> use $module:ident :: $func:ident) => {
         #[proc_macro]
         pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             $module::$func(input)
         }
     };
 
-    // nested
-    ($name:ident -> $($module:ident)::+ :: $func:ident) => {
-        $(mod $module;)*
+    // declares module explicitly and delegates to use variant
+    ($name:ident -> mod $module:ident :: $func:ident) => {
+        mod $module;
+        $crate::proc_macro!($name -> use $module :: $func);
+    };
 
+    // implicit module (defaults to explicit module declaration)
+    ($name:ident -> $module:ident :: $func:ident) => {
+        $crate::proc_macro!($name -> mod $module :: $func);
+    };
+
+    // base implementation for nested modules with existing imports
+    ($name:ident -> use $($module:ident)::+ :: $func:ident) => {
         #[proc_macro]
         pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             $($module::)+$func(input)
         }
     };
 
-    // regular path (absolute or relative to current file)
+    // declares root module and delegates to use variant for nested modules
+    ($name:ident -> mod $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        mod $first;
+        $crate::proc_macro!($name -> use $first$(::$rest)+ :: $func);
+    };
+
+    // implicit nested modules (defaults to explicit module declaration)
+    ($name:ident -> $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        $crate::proc_macro!($name -> mod $first $(:: $rest)+ :: $func);
+    };
+
+    // base implementation for literal file paths
     ($name:ident -> $path:literal :: $func:ident) => {
         #[proc_macro]
         pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -48,7 +72,7 @@ macro_rules! proc_macro {
         }
     };
 
-    // crate-relative path (literal path prepended by `@`)
+    // base implementation for crate-relative paths (prefixed with @)
     ($name:ident -> @$path:literal :: $func:ident) => {
         #[proc_macro]
         pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -68,9 +92,11 @@ macro_rules! proc_macro {
 /// - Nested modules: `attr_macro!(name -> a::b::c::function)`
 /// - Literal path: `attr_macro!(name -> "path/to/file.rs"::function)`
 /// - Crate-relative path: `attr_macro!(name -> @"path/from/crate/root.rs"::function)`
+///
+/// See: [`macros!`](crate::macros)
 #[macro_export]
 macro_rules! attr_macro {
-    // direct function reference
+    // base implementation for direct function reference
     ($name:ident -> $func:ident) => {
         #[proc_macro_attribute]
         pub fn $name(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -78,27 +104,45 @@ macro_rules! attr_macro {
         }
     };
 
-    // module reference
-    ($name:ident -> $module:ident :: $func:ident) => {
-        mod $module;
-
+    // base implementation for using existing modules
+    ($name:ident -> use $module:ident :: $func:ident) => {
         #[proc_macro_attribute]
         pub fn $name(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
             $module::$func(attr, item)
         }
     };
 
-    // nested
-    ($name:ident -> $($module:ident)::+ :: $func:ident) => {
-        $(mod $module;)*
+    // declares module explicitly and delegates to use variant
+    ($name:ident -> mod $module:ident :: $func:ident) => {
+        mod $module;
+        $crate::attr_macro!($name -> use $module :: $func);
+    };
 
+    // module reference (implicit mod - delegates to explicit mod)
+    ($name:ident -> $module:ident :: $func:ident) => {
+        $crate::attr_macro!($name -> mod $module :: $func);
+    };
+
+    // nested modules (use existing - base implementation)
+    ($name:ident -> use $($module:ident)::+ :: $func:ident) => {
         #[proc_macro_attribute]
         pub fn $name(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
             $($module::)+$func(attr, item)
         }
     };
 
-    // regular path
+    // nested modules (declare root module - delegates to use)
+    ($name:ident -> mod $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        mod $first;
+        $crate::attr_macro!($name -> use $first$(::$rest)+ :: $func);
+    };
+
+    // nested modules (implicit mod - delegates to explicit mod)
+    ($name:ident -> $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        $crate::attr_macro!($name -> mod $first $(:: $rest)+ :: $func);
+    };
+
+    // path variants (base implementations since they create their own internal module anyway)
     ($name:ident -> $path:literal :: $func:ident) => {
         #[proc_macro_attribute]
         pub fn $name(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -129,63 +173,125 @@ macro_rules! attr_macro {
 /// - Literal path: `derive_macro!(Name -> "path/to/file.rs"::function)`
 /// - Crate-relative path: `derive_macro!(Name -> @"path/from/crate/root.rs"::function)`
 /// - With attributes: `derive_macro!((Name, attributes(attr1, attr2)) -> module::function)`
+///
+/// See: [`macros!`](crate::macros)
 #[macro_export]
 macro_rules! derive_macro {
-    // direct function reference
+    // -------------------------------------------------
+    // -------------------------------------------------
+    // base implementations for various pattern types
+    // -------------------------------------------------
+
+    // direct function reference (base implementation for general attributes)
+    (($name:ident $(, $attr:tt)*) -> use $func:ident) => {
+        #[allow(non_snake_case)]
+        #[proc_macro_derive($name $(, $attr)*)]
+        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+            $func(input)
+        }
+    };
+
+    // direct function reference (base implementation for helper attributes)
+    (($name:ident, attributes($($attr:ident),*)) -> use $func:ident) => {
+        #[allow(non_snake_case)]
+        #[proc_macro_derive($name, attributes($($attr),*))]
+        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+            $func(input)
+        }
+    };
+
+    // module reference (use existing - base implementation for general attributes)
+    (($name:ident $(, $attr:tt)*) -> use $module:ident :: $func:ident) => {
+        #[allow(non_snake_case)]
+        #[proc_macro_derive($name $(, $attr)*)]
+        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+            $module::$func(input)
+        }
+    };
+
+    // module reference (use existing - base implementation for helper attributes)
+    (($name:ident, attributes($($attr:ident),*)) -> use $module:ident :: $func:ident) => {
+        #[allow(non_snake_case)]
+        #[proc_macro_derive($name, attributes($($attr),*))]
+        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+            $module::$func(input)
+        }
+    };
+
+    // nested modules (use existing - base implementation for general attributes)
+    (($name:ident $(, $attr:tt)*) -> use $($module:ident)::+ :: $func:ident) => {
+        #[allow(non_snake_case)]
+        #[proc_macro_derive($name $(, $attr)*)]
+        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+            $($module::)+$func(input)
+        }
+    };
+
+    // nested modules (use existing - base implementation for helper attributes)
+    (($name:ident, attributes($($attr:ident),*)) -> use $($module:ident)::+ :: $func:ident) => {
+        #[allow(non_snake_case)]
+        #[proc_macro_derive($name, attributes($($attr),*))]
+        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+            $($module::)+$func(input)
+        }
+    };
+
+    // -------------------------------------------------
+    // delegating variants
+    // -------------------------------------------------
+
+    // direct function reference (delegates to use variant)
     (($name:ident $(, $attr:tt)*) -> $func:ident) => {
-        #[allow(non_snake_case)]
-        #[proc_macro_derive($name $(, $attr)*)]
-        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            $func(input)
-        }
+        $crate::derive_macro!(($name $(, $attr)*) -> use $func);
+    };
+    (($name:ident, attributes($($attr:tt),*)) -> $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),*)) -> use $func);
     };
 
-    // direct function reference with attributes
-    (($name:ident, attributes($($attr:ident),*)) -> $func:ident) => {
-        #[allow(non_snake_case)]
-        #[proc_macro_derive($name, attributes($($attr),*))]
-        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            $func(input)
-        }
+    // module reference (declare module explicitly - delegates to use)
+    (($name:ident $(, $attr:tt)*) -> mod $module:ident :: $func:ident) => {
+        mod $module;
+        $crate::derive_macro!(($name $(, $attr)*) -> use $module :: $func);
+    };
+    (($name:ident, attributes($($attr:tt),*)) -> mod $module:ident :: $func:ident) => {
+        mod $module;
+        $crate::derive_macro!(($name, attributes($($attr),*))-> use $module :: $func);
     };
 
-    // module reference
+    // module reference (implicit mod - delegates to explicit mod)
     (($name:ident $(, $attr:tt)*) -> $module:ident :: $func:ident) => {
-        mod $module;
-
-        #[allow(non_snake_case)]
-        #[proc_macro_derive($name $(, $attr)*)]
-        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            $module::$func(input)
-        }
+        $crate::derive_macro!(($name $(, $attr)*) -> mod $module :: $func);
+    };
+    (($name:ident, attributes($($attr:tt),*)) -> $module:ident :: $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),*))-> mod $module :: $func);
     };
 
-    // module reference with attributes
-    (($name:ident, attributes($($attr:ident),*)) -> $module:ident :: $func:ident) => {
-        mod $module;
-
-        #[allow(non_snake_case)]
-        #[proc_macro_derive($name, attributes($($attr),*))]
-        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            $module::$func(input)
-        }
+    // nested modules (declare root module - delegates to use)
+    (($name:ident $(, $attr:tt)*) -> mod $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        mod $first;
+        $crate::derive_macro!(($name $(, $attr)*) -> use $first$(::$rest)+ :: $func);
+    };
+    (($name:ident, attributes($($attr:tt),*)) -> mod $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        mod $first;
+        $crate::derive_macro!(($name, attributes($($attr),*)) -> use $first$(::$rest)+ :: $func);
     };
 
-    // regular path
+    // nested modules (implicit mod - delegates to explicit mod)
+    (($name:ident $(, $attr:tt)*) -> $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        $crate::derive_macro!(($name $(, $attr)*) -> mod $first $(:: $rest)+ :: $func);
+    };
+    (($name:ident, attributes($($attr:tt),*)) -> $first:ident $(:: $rest:ident)+ :: $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),*)) -> mod $first $(:: $rest)+ :: $func);
+    };
+
+    // -------------------------------------------------
+    // path variants (base implementations since they create their own module anyways)
+    // -------------------------------------------------
+
+    // path variants (base implementations since they create their own module anyway)
     (($name:ident $(, $attr:tt)*) -> $path:literal :: $func:ident) => {
         #[allow(non_snake_case)]
         #[proc_macro_derive($name $(, $attr)*)]
-        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            #[path = $path]
-            mod __inner;
-            __inner::$func(input)
-        }
-    };
-
-    // regular path with attributes
-    (($name:ident, attributes($($attr:ident),*)) -> $path:literal :: $func:ident) => {
-        #[allow(non_snake_case)]
-        #[proc_macro_derive($name, attributes($($attr),*))]
         pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             #[path = $path]
             mod __inner;
@@ -204,18 +310,6 @@ macro_rules! derive_macro {
             __inner::$func(input)
         }
     };
-
-    // crate-relative path with attributes
-    (($name:ident, attributes($($attr:ident),*)) -> @$path:literal :: $func:ident) => {
-        #[allow(non_snake_case)]
-        #[proc_macro_derive($name, attributes($($attr),*))]
-        pub fn $name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            mod __inner {
-                include!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $path));
-            }
-            __inner::$func(input)
-        }
-    };
 }
 
 /// Delegates procedural macro declarations to implementation modules.
@@ -224,7 +318,7 @@ macro_rules! derive_macro {
 /// modules should not (and can not, which is why this crate exists) include the
 /// proc macro attributes (`#[proc_macro]`, `#[proc_macro_attribute]`, or `#[proc_macro_derive]`).
 ///
-/// Uses the specialized macros internally: `proc_macro!`, `attr_macro!`, and `derive_macro!`.
+/// Uses the specialized macros internally: [`proc_macro!`](crate::proc_macro), [`attr_macro!`](crate::attr_macro), and [`derive_macro!`](crate::derive_macro).
 ///
 /// ## Supported syntax:
 /// - `function(macro_name) -> impl`: Function-like proc macros with custom name
@@ -236,7 +330,9 @@ macro_rules! derive_macro {
 ///
 /// Where `impl` can be:
 /// - Direct function: `function`
-/// - Module reference: `module::function`
+/// - Module reference with implicit module declaration (default): `module::function`
+/// - Module reference with explicit declaration: `mod module::function`
+/// - Module reference without declaration (already imported): `use module::function`
 /// - Nested modules: `a::b::c::function`
 /// - Literal path: `"path/to/file.rs"::function`
 /// - Crate-relative path: `@"path/from/crate/root.rs"::function`
@@ -246,231 +342,296 @@ macro_rules! derive_macro {
 /// include_proc_macro::macros!(
 ///     function(foo) -> foo_mod::implement,
 ///     function -> bar_mod::bar, // uses `bar` as the macro name
-///     function(baz) -> existing_function,  // `existing_function` is already in scope, just use directly
+///     
+///     // Using an already imported module with the `use` keyword
+///     function(baz) -> use existing_mod::function_impl,
+///     
+///     // Explicitly declaring a module with the `mod` keyword
+///     function(fizz) -> mod explicit_mod::function_impl,
+///     
 ///     function(buzz) -> "src/impls/hello.rs"::hello,
-///     function -> @"custom_src/impls/world.rs"::world,  // impl in custom crate path, uses 'world' as the macro name
+///     // impl in custom crate path, uses 'world' as the macro name
+///     function -> @"custom_src/impls/world.rs"::world,  
+///     
 ///     attribute(my_attr) -> attrs::process,
+///     attribute(use_attr) -> use imported_attr_mod::process,
 ///     attribute -> attrs::custom,  // uses 'custom' as the macro name
-///     derive(MyDerive) -> derives::generate, // at least for now, derive macros require the derive name
-///     derive(NodeTypeChecks, attributes(node_category)) -> derive_impl_with_attrs::impl_with_attributes // derive with helper attributes
+///     
+///     derive(MyDerive) -> derives::generate,
+///     derive(ImportedDerive) -> use imported_derive_mod::generate,
+///     derive(NodeTypeChecks, attributes(node_category))
+///         -> derive_impl_with_attrs::impl_with_attributes // derive with helper attributes
 /// );
 /// ```
 #[macro_export]
 macro_rules! macros {
     () => {};
 
-    // -------------------------------------------------
-    // with trailing comma
-    // -------------------------------------------------
-
-    (function -> $module:ident :: $func:ident, $($tail:tt)*) => {
+    // function patterns with trailing comma
+    (function -> $module:ident :: $func:ident , $($tail:tt)*) => {
         $crate::proc_macro!($func -> $module::$func);
         $crate::macros!($($tail)*);
     };
-
-    (attribute -> $module:ident :: $func:ident, $($tail:tt)*) => {
-        $crate::attr_macro!($func -> $module::$func);
+    (function -> $func:ident , $($tail:tt)*) => {
+        $crate::proc_macro!($func -> $func);
         $crate::macros!($($tail)*);
     };
-
-    (function($name:ident) -> $func:ident, $($tail:tt)*) => {
+    (function -> @$path:literal :: $func:ident , $($tail:tt)*) => {
+        $crate::proc_macro!($func -> @$path::$func);
+        $crate::macros!($($tail)*);
+    };
+    (function($name:ident) -> $func:ident , $($tail:tt)*) => {
         $crate::proc_macro!($name -> $func);
         $crate::macros!($($tail)*);
     };
-
-    (function($name:ident) -> $module:ident :: $func:ident, $($tail:tt)*) => {
+    (function($name:ident) -> $module:ident :: $func:ident , $($tail:tt)*) => {
         $crate::proc_macro!($name -> $module::$func);
         $crate::macros!($($tail)*);
     };
-
-    (function($name:ident) -> $path:literal :: $func:ident, $($tail:tt)*) => {
+    (function($name:ident) -> @$path:literal :: $func:ident , $($tail:tt)*) => {
+        $crate::proc_macro!($name -> @$path::$func);
+        $crate::macros!($($tail)*);
+    };
+    (function($name:ident) -> use $func:ident , $($tail:tt)*) => {
+        $crate::proc_macro!($name -> use $func);
+        $crate::macros!($($tail)*);
+    };
+    (function($name:ident) -> use $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::proc_macro!($name -> use $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (function($name:ident) -> mod $func:ident , $($tail:tt)*) => {
+        $crate::proc_macro!($name -> mod $func);
+        $crate::macros!($($tail)*);
+    };
+    (function($name:ident) -> mod $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::proc_macro!($name -> mod $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (function($name:ident) -> $path:literal :: $func:ident , $($tail:tt)*) => {
         $crate::proc_macro!($name -> $path::$func);
         $crate::macros!($($tail)*);
     };
 
-    (attribute($name:ident) -> $func:ident, $($tail:tt)*) => {
-        $crate::attr_macro!($name -> $func);
+    // attribute patterns with trailing comma
+    (attribute -> $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($func -> $func);
         $crate::macros!($($tail)*);
     };
-
-    (attribute($name:ident) -> $module:ident :: $func:ident, $($tail:tt)*) => {
-        $crate::attr_macro!($name -> $module::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (attribute($name:ident) -> $path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::attr_macro!($name -> $path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (function -> $path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::proc_macro!($func -> $path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (attribute -> $path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::attr_macro!($func -> $path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (function -> @$path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::proc_macro!($func -> @$path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (attribute -> @$path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::attr_macro!($func -> @$path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (function($name:ident) -> @$path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::proc_macro!($name -> @$path :: $func);
-        $crate::macros!($($tail)*);
-    };
-
-    (attribute($name:ident) -> @$path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::attr_macro!($name -> @$path :: $func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident $(, $($rest:tt)*)?) -> $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> $func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident, attributes($($attr:ident),*)) -> $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> $func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident $(, $($rest:tt)*)?) -> $module:ident :: $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> $module::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident, attributes($($attr:ident),*)) -> $module:ident :: $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> $module::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident $(, $($rest:tt)*)?) -> $path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> $path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident, attributes($($attr:ident),*)) -> $path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> $path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident $(, $($rest:tt)*)?) -> @$path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> @$path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident, attributes($($attr:ident),*)) -> @$path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> @$path::$func);
-        $crate::macros!($($tail)*);
-    };
-
-    (derive($name:ident) -> @$path:literal :: $func:ident, $($tail:tt)*) => {
-        $crate::derive_macro!($name -> @$path :: $func);
-        $crate::macros!($($tail)*);
-    };
-
-
-    // -------------------------------------------------
-    // without trailing comma
-    // -------------------------------------------------
-
-    (function -> $module:ident :: $func:ident) => {
-        $crate::proc_macro!($func -> $module::$func);
-    };
-
-    (attribute -> $module:ident :: $func:ident) => {
+    (attribute -> $module:ident :: $func:ident , $($tail:tt)*) => {
         $crate::attr_macro!($func -> $module::$func);
+        $crate::macros!($($tail)*);
     };
-
-    (function($name:ident) -> $func:ident) => {
-        $crate::proc_macro!($name -> $func);
-    };
-
-    (function($name:ident) -> $module:ident :: $func:ident) => {
-        $crate::proc_macro!($name -> $module::$func);
-    };
-
-    (function($name:ident) -> $path:literal :: $func:ident) => {
-        $crate::proc_macro!($name -> $path::$func);
-    };
-
-    (attribute($name:ident) -> $func:ident) => {
-        $crate::attr_macro!($name -> $func);
-    };
-
-    (attribute($name:ident) -> $module:ident :: $func:ident) => {
-        $crate::attr_macro!($name -> $module::$func);
-    };
-
-    (attribute($name:ident) -> $path:literal :: $func:ident) => {
-        $crate::attr_macro!($name -> $path::$func);
-    };
-
-    (function -> $path:literal :: $func:ident) => {
-        $crate::proc_macro!($func -> $path::$func);
-    };
-
-    (attribute -> $path:literal :: $func:ident) => {
-        $crate::attr_macro!($func -> $path::$func);
-    };
-
-    (function -> @$path:literal :: $func:ident) => {
-        $crate::proc_macro!($func -> @$path::$func);
-    };
-
-    (attribute -> @$path:literal :: $func:ident) => {
+    (attribute -> @$path:literal :: $func:ident , $($tail:tt)*) => {
         $crate::attr_macro!($func -> @$path::$func);
+        $crate::macros!($($tail)*);
+    };
+    (attribute($name:ident) -> $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($name -> $func);
+        $crate::macros!($($tail)*);
+    };
+    (attribute($name:ident) -> $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($name -> $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (attribute($name:ident) -> @$path:literal :: $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($name -> @$path::$func);
+        $crate::macros!($($tail)*);
     };
 
-    (function($name:ident) -> @$path:literal :: $func:ident) => {
-        $crate::proc_macro!($name -> @$path :: $func);
+    // attribute use patterns with trailing comma
+    (attribute($name:ident) -> use $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($name -> use $func);
+        $crate::macros!($($tail)*);
+    };
+    (attribute($name:ident) -> use $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($name -> use $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (attribute($name:ident) -> mod $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($name -> mod $func);
+        $crate::macros!($($tail)*);
+    };
+    (attribute($name:ident) -> mod $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::attr_macro!($name -> mod $module::$func);
+        $crate::macros!($($tail)*);
     };
 
-    (attribute($name:ident) -> @$path:literal :: $func:ident) => {
-        $crate::attr_macro!($name -> @$path :: $func);
-    };
-
-    (derive($name:ident $(, $($rest:tt)*)?) -> $func:ident) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> $func);
-    };
-
-    (derive($name:ident, attributes($($attr:ident),*)) -> $func:ident) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> $func);
-    };
-
-    (derive($name:ident $(, $($rest:tt)*)?) -> $module:ident :: $func:ident) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> $module::$func);
+    (derive($name:ident, attributes($($attr:ident),*)) -> $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),*)) -> $module::$func);
+        $crate::macros!($($tail)*);
     };
 
     (derive($name:ident, attributes($($attr:ident),*)) -> $module:ident :: $func:ident) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> $module::$func);
+        $crate::derive_macro!(($name, attributes($($attr),*)) -> $module::$func);
     };
 
-    (derive($name:ident $(, $($rest:tt)*)?) -> $path:literal :: $func:ident) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> $path::$func);
+    (derive($name:ident, attributes($($attr:ident),+)) -> $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> $module::$func);
+        $crate::macros!($($tail)*);
     };
 
-    (derive($name:ident, attributes($($attr:ident),*)) -> $path:literal :: $func:ident) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> $path::$func);
+    (derive($name:ident, attributes($($attr:ident),+)) -> use $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> use $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> mod $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> mod $module::$func);
+        $crate::macros!($($tail)*);
     };
 
-    (derive($name:ident $(, $($rest:tt)*)?) -> @$path:literal :: $func:ident) => {
-        $crate::derive_macro!(($name $(, $($rest)*)?) -> @$path::$func);
+    // derive patterns with trailing comma
+    (derive($name:ident) -> $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name) -> $func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident) -> $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name) -> $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident) -> @$path:literal :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name) -> @$path::$func);
+        $crate::macros!($($tail)*);
     };
 
-    (derive($name:ident, attributes($($attr:ident),*)) -> @$path:literal :: $func:ident) => {
-        $crate::derive_macro!(($name, attributes($($attr)*)?) -> @$path::$func);
+    (derive($name:ident) -> use $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name) -> use $func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident) -> use $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name) -> use $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident) -> mod $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name) -> mod $func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident) -> mod $module:ident :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name) -> mod $module::$func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> $func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> @$path:literal :: $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> @$path::$func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> use $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> use $func);
+        $crate::macros!($($tail)*);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> mod $func:ident , $($tail:tt)*) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> mod $func);
+        $crate::macros!($($tail)*);
     };
 
+    // terminal patterns (without trailing comma)
+    (function -> $func:ident) => {
+        $crate::proc_macro!($func -> $func);
+    };
+    (function -> $module:ident :: $func:ident) => {
+        $crate::proc_macro!($func -> $module::$func);
+    };
+    (function -> @$path:literal :: $func:ident) => {
+        $crate::proc_macro!($func -> @$path::$func);
+    };
+    (function($name:ident) -> $func:ident) => {
+        $crate::proc_macro!($name -> $func);
+    };
+    (function($name:ident) -> $module:ident :: $func:ident) => {
+        $crate::proc_macro!($name -> $module::$func);
+    };
+    (function($name:ident) -> @$path:literal :: $func:ident) => {
+        $crate::proc_macro!($name -> @$path::$func);
+    };
+    (function($name:ident) -> use $func:ident) => {
+        $crate::proc_macro!($name -> use $func);
+    };
+    (function($name:ident) -> use $module:ident :: $func:ident) => {
+        $crate::proc_macro!($name -> use $module::$func);
+    };
+    (function($name:ident) -> mod $func:ident) => {
+        $crate::proc_macro!($name -> mod $func);
+    };
+    (function($name:ident) -> mod $module:ident :: $func:ident) => {
+        $crate::proc_macro!($name -> mod $module::$func);
+    };
+
+    (attribute -> $func:ident) => {
+        $crate::attr_macro!($func -> $func);
+    };
+    (attribute -> $module:ident :: $func:ident) => {
+        $crate::attr_macro!($func -> $module::$func);
+    };
+    (attribute -> @$path:literal :: $func:ident) => {
+        $crate::attr_macro!($func -> @$path::$func);
+    };
+    (attribute($name:ident) -> $func:ident) => {
+        $crate::attr_macro!($name -> $func);
+    };
+    (attribute($name:ident) -> $module:ident :: $func:ident) => {
+        $crate::attr_macro!($name -> $module::$func);
+    };
+    (attribute($name:ident) -> @$path:literal :: $func:ident) => {
+        $crate::attr_macro!($name -> @$path::$func);
+    };
+    (attribute($name:ident) -> use $func:ident) => {
+        $crate::attr_macro!($name -> use $func);
+    };
+    (attribute($name:ident) -> use $module:ident :: $func:ident) => {
+        $crate::attr_macro!($name -> use $module::$func);
+    };
+    (attribute($name:ident) -> mod $func:ident) => {
+        $crate::attr_macro!($name -> mod $func);
+    };
+    (attribute($name:ident) -> mod $module:ident :: $func:ident) => {
+        $crate::attr_macro!($name -> mod $module::$func);
+    };
+
+    (derive($name:ident) -> $func:ident) => {
+        $crate::derive_macro!(($name) -> $func);
+    };
+    (derive($name:ident) -> $module:ident :: $func:ident) => {
+        $crate::derive_macro!(($name) -> $module::$func);
+    };
+    (derive($name:ident) -> @$path:literal :: $func:ident) => {
+        $crate::derive_macro!(($name) -> @$path::$func);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> $func);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> $module:ident :: $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> $module::$func);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> @$path:literal :: $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> @$path::$func);
+    };
+    (derive($name:ident) -> use $func:ident) => {
+        $crate::derive_macro!(($name) -> use $func);
+    };
+    (derive($name:ident) -> use $module:ident :: $func:ident) => {
+        $crate::derive_macro!(($name) -> use $module::$func);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> use $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> use $func);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> use $module:ident :: $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> use $module::$func);
+    };
+    (derive($name:ident) -> mod $func:ident) => {
+        $crate::derive_macro!(($name) -> mod $func);
+    };
+    (derive($name:ident) -> mod $module:ident :: $func:ident) => {
+        $crate::derive_macro!(($name) -> mod $module::$func);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> mod $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> mod $func);
+    };
+    (derive($name:ident, attributes($($attr:ident),+)) -> mod $module:ident :: $func:ident) => {
+        $crate::derive_macro!(($name, attributes($($attr),+)) -> mod $module::$func);
+    };
 }
 
 #[cfg(test)]

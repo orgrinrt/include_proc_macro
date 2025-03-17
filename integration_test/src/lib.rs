@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use macro_test::*;
-    use std::fmt::Display;
+    use examples::{
+        derive_debug, fizz, generate_documentation, greet, DefaultImpl, DisplayImpl,
+        NodeTypeChecks, Validate,
+    };
 
     #[test]
     fn test_function_macros() {
