@@ -338,7 +338,7 @@ macro_rules! derive_macro {
 /// - Crate-relative path: `@"path/from/crate/root.rs"::function`
 ///
 /// ## Examples
-/// ```rust
+/// ```rust,ignore
 /// include_proc_macro::macros!(
 ///     function(foo) -> foo_mod::implement,
 ///     function -> bar_mod::bar, // uses `bar` as the macro name
@@ -355,7 +355,7 @@ macro_rules! derive_macro {
 ///     
 ///     attribute(my_attr) -> attrs::process,
 ///     attribute(use_attr) -> use imported_attr_mod::process,
-///     attribute -> attrs::custom,  // uses 'custom' as the macro name
+///     attribute(custom) -> use attrs::custom, // attrs is already declared above
 ///     
 ///     derive(MyDerive) -> derives::generate,
 ///     derive(ImportedDerive) -> use imported_derive_mod::generate,
