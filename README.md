@@ -98,7 +98,7 @@ macros!(
     attribute(custom_attr) -> use attr_impl::custom_implementation,
 
     // `derive` is for derive macros, and the name in parentheses is the actual derive name
-    // (the function name will be inherited from source module, but is seldom needed)
+    // (the generated function takes the derive's name too)
     derive(DebugImpl) -> derive_impl::implement_debug,
     // `derive_impl` was already declared above, so this reuses it with `use`
     derive(DisplayImpl) -> use derive_impl::implement_display,
@@ -135,7 +135,7 @@ lot* of boilerplate, though the average case would likely not have so many macro
 <details>
 <summary>Click to expand a comparison</summary>
 
-This is short and sweet bit is what we can have, if we use this crate:
+This short and sweet bit is what we can have, if we use this crate:
 
 ```rust,ignore
 macros!(
@@ -252,7 +252,7 @@ This crate solves these problems by:
 3. Allowing for custom naming of macros separate from their implementation
 4. Enabling batch definitions for much prettier and more readable root module
 
-This is all done via the macro, at compile time, so there are no runtime overhead or other similar implications to consider. The compilation time is slightly increased (due to this dependency), but this is of course only for your proc macro crate, and not for the actual code that uses the macros. For most use cases, you won't notice any side effects.
+This is all done via the macro, at compile time, so there is no runtime overhead or other similar implications to consider. The compilation time is slightly increased (due to this dependency), but this is of course only for your proc macro crate, and not for the actual code that uses the macros. For most use cases, you won't notice any side effects.
 
 ## Support
 
