@@ -1,12 +1,12 @@
 [package]
 name = "include_proc_macro"
 authors = ["orgrinrt", "Hiisi Digital"]
-version = "2.0.6"
+version = "2.0.7"
 edition = "2021"
 description = """
 A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 """
-license-file = "LICENSE"
+license = "MPL-2.0"
 readme = "README.md"
 keywords = ["procedural-macros", "proc-macro", "derive", "attribute-macros", "macro-helpers"]
 categories = ["development-tools", "development-tools::procedural-macro-helpers"]
