@@ -1,0 +1,7 @@
+error: include_proc_macro: `attribute -> helper_attr` would take its name from `helper_attr`, and the generated item would then shadow the function it is supposed to call, so the macro would call itself. Give the macro its own name with `attribute(some_name) -> helper_attr`, or move the implementation into a module and write `attribute -> some_module::helper_attr`.
+ --> tests/ui/self_reference_attribute_use.rs:1:1
+  |
+1 | include_proc_macro::macros!(attribute -> use helper_attr);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `$crate::__ipm_self_reference` which comes from the expansion of the macro `include_proc_macro::macros` (in Nightly builds, run with -Z macro-backtrace for more info)

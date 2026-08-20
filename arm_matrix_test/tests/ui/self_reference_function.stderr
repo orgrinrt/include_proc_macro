@@ -1,0 +1,7 @@
+error: include_proc_macro: `function -> helper` would take its name from `helper`, and the generated item would then shadow the function it is supposed to call, so the macro would call itself. Give the macro its own name with `function(some_name) -> helper`, or move the implementation into a module and write `function -> some_module::helper`.
+ --> tests/ui/self_reference_function.rs:1:1
+  |
+1 | include_proc_macro::macros!(function -> helper);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `$crate::__ipm_self_reference` which comes from the expansion of the macro `include_proc_macro::macros` (in Nightly builds, run with -Z macro-backtrace for more info)

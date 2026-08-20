@@ -1,0 +1,13 @@
+[package]
+name = "arm_matrix_test"
+publish = false
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+arm_matrix = { path = "../arm_matrix" }
+include_proc_macro = { path = "../" }
+
+[dev-dependencies]
+# Dev-only, so the published crate keeps its empty dependency list.
+trybuild = "1.0"

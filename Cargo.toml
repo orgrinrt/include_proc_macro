@@ -1,8 +1,12 @@
 [package]
 name = "include_proc_macro"
 authors = ["orgrinrt", "Hiisi Digital"]
-version = "2.0.7"
+version = "2.1.0"
 edition = "2021"
+# Verified by expanding every documented form under 1.56.1, not merely by
+# building the macro definitions: a macro_rules body is not checked until it is
+# used. 1.56 is also the floor for edition 2021.
+rust-version = "1.56"
 description = """
 A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 """
@@ -17,7 +21,9 @@ repository = "https://github.com/orgrinrt/include_proc_macro"
 [workspace]
 members = [
     "examples",
-    "integration_test"
+    "integration_test",
+    "arm_matrix",
+    "arm_matrix_test",
 ]
 
 [dependencies]

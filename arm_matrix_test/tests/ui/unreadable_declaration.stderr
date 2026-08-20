@@ -1,0 +1,7 @@
+error: include_proc_macro: cannot read the declaration `gadget (thing) -> helper`. An entry is `function(name) -> path`, `function -> path`, `attribute(name) -> path`, `attribute -> path`, `derive(Name) -> path`, or `derive(Name, attributes(a, b)) -> path`.
+ --> tests/ui/unreadable_declaration.rs:1:1
+  |
+1 | include_proc_macro::macros!(gadget(thing) -> helper);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `$crate::__ipm_one` which comes from the expansion of the macro `include_proc_macro::macros` (in Nightly builds, run with -Z macro-backtrace for more info)
