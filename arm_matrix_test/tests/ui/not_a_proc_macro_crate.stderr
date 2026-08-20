@@ -1,0 +1,41 @@
+error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
+  --> tests/ui/not_a_proc_macro_crate.rs:13:1
+   |
+13 | include_proc_macro::proc_macro!(demo -> use implementation);
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this error originates in the macro `$crate::__ipm_emit_function` which comes from the expansion of the macro `include_proc_macro::proc_macro` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `proc_macro`
+ --> tests/ui/not_a_proc_macro_crate.rs:9:30
+  |
+9 | pub fn implementation(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  |                              ^^^^^^^^^^ use of unresolved module or unlinked crate `proc_macro`
+  |
+  = help: if you wanted to use a crate named `proc_macro`, use `cargo add proc_macro` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `proc_macro`
+ --> tests/ui/not_a_proc_macro_crate.rs:9:58
+  |
+9 | pub fn implementation(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  |                                                          ^^^^^^^^^^ use of unresolved module or unlinked crate `proc_macro`
+  |
+  = help: if you wanted to use a crate named `proc_macro`, use `cargo add proc_macro` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `proc_macro`
+  --> tests/ui/not_a_proc_macro_crate.rs:13:1
+   |
+13 | include_proc_macro::proc_macro!(demo -> use implementation);
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `proc_macro`
+   |
+   = help: if you wanted to use a crate named `proc_macro`, use `cargo add proc_macro` to add it to your `Cargo.toml`
+   = note: this error originates in the macro `$crate::__ipm_emit_function` which comes from the expansion of the macro `include_proc_macro::proc_macro` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `proc_macro`
+  --> tests/ui/not_a_proc_macro_crate.rs:13:1
+   |
+13 | include_proc_macro::proc_macro!(demo -> use implementation);
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `proc_macro`
+   |
+   = help: if you wanted to use a crate named `proc_macro`, use `cargo add proc_macro` to add it to your `Cargo.toml`
+   = note: this error originates in the macro `$crate::__ipm_emit_function` which comes from the expansion of the macro `include_proc_macro::proc_macro` (in Nightly builds, run with -Z macro-backtrace for more info)

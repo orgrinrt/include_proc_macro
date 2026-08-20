@@ -22,7 +22,7 @@
 // ambiguity. Absorbing the function into the repetition removes the choice, because
 // the last segment is then the function by construction.
 //
-// `tests/arms.rs` asserts every cell of the grammar against every kind, so a form
+// `arm_matrix_test/` asserts every cell of the grammar against every kind, so a form
 // that is documented and does not work is a failing test rather than a bug report.
 
 // ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ macro_rules! __ipm_infer_name {
 /// | `name -> "path/to/file.rs"::f` | a file, relative to this one |
 /// | `name -> @"path/from/crate/root.rs"::f` | a file, relative to the crate root |
 ///
-/// Every row is asserted in `tests/arms.rs`, for this macro and for the other two.
+/// Every row is asserted in `arm_matrix_test/`, for this macro and for the other two.
 ///
 /// See also [`attr_macro!`](crate::attr_macro), [`derive_macro!`](crate::derive_macro),
 /// and [`macros!`](crate::macros), which declares any number of them at once.
