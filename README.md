@@ -264,4 +264,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 > You can check out the full license [here](https://github.com/orgrinrt/include_proc_macro/blob/main/LICENSE)
 
-This project is licensed under the terms of the **MIT** license.
+This project is licensed under the terms of the **MPL-2.0** license.
