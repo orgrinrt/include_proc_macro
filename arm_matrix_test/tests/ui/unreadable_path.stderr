@@ -1,0 +1,7 @@
+error: include_proc_macro: cannot read the implementation path `42 + 7`. The forms are `f`, `use f`, `m::f`, `mod m::f`, `use m::f`, `a::b::c::f`, `"path/to/file.rs"::f` and `@"path/from/crate/root.rs"::f`.
+ --> tests/ui/unreadable_path.rs:1:1
+  |
+1 | include_proc_macro::proc_macro!(thing -> 42 + 7);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `$crate::__ipm_resolve` which comes from the expansion of the macro `include_proc_macro::proc_macro` (in Nightly builds, run with -Z macro-backtrace for more info)

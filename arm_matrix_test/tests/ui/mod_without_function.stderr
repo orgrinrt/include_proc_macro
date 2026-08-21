@@ -1,0 +1,7 @@
+error: include_proc_macro: `mod some_module` names a module but no function inside it. Write `mod some_module::the_function`, or drop the `mod` to call a function already in scope.
+ --> tests/ui/mod_without_function.rs:1:1
+  |
+1 | include_proc_macro::proc_macro!(thing -> mod some_module);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `$crate::__ipm_resolve` which comes from the expansion of the macro `include_proc_macro::proc_macro` (in Nightly builds, run with -Z macro-backtrace for more info)

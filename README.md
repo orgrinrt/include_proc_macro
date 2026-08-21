@@ -6,253 +6,227 @@ include_proc_macro
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/stargazers)
 [![Crates.io Total Downloads](https://img.shields.io/crates/d/include_proc_macro)](https://crates.io/crates/include_proc_macro)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
-[![Current Version](https://img.shields.io/badge/version-2.0.6-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
+[![Current Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
 
 > A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
 
 </div>
 
+## The problem
+
+Rust requires every procedural macro to be a public function at the root of a proc-macro
+crate, carrying the right attribute and the exact signature for its kind. The
+implementations do not have to live there, and in any crate with more than a handful of
+macros they should not, so the root fills up with delegating stubs: a `mod` line, an
+attribute, a signature, and a one-line body that forwards to the real code.
+
+None of that carries information. It is the same four lines each time, and the only part
+that varies is which function is being forwarded to.
+
+This crate writes those stubs. You say what kind of macro it is, what it is called, and
+where the implementation lives, and the delegation is generated. There is nothing at
+runtime and no dependencies; it is one `macro_rules!` file that expands to the code you
+would otherwise type.
+
 ## Usage
 
-The `include_proc_macro` crate provides utilities that make working with procedural macros simpler and more convenient. It offers a simple, comparatively pretty syntax for defining multiples of function-like macros, attribute macros, and derive macros, in a single crate, along with flexible options for importing their implementations.
-
-### Important changes in 2.0.6
-
-Version 2.0.6 introduces several new syntax options to give you more control over how modules are handled:
-
-- The `use` keyword tells the macro that you've already imported or defined the module, so it should just use it without redeclaring it
-- The explicit `mod` keyword makes it clear that this line declares the module (default behavior, but now can be explicit)
-- When no keyword is present, `mod` is implicitly used (maintaining backward compatibility)
-
 ```rust,ignore
 use include_proc_macro::macros;
 
 macros!(
-    // using an already imported module
-    function(my_macro) -> use already_imported_module::function,
-    // explicitly declaring a module
-    function(another_macro) -> mod explicit_module::function,
-    // default behavior (implicitly using mod, this is the old behaviour)
-    function(third_macro) -> implicit_module::function
+    // A function-like macro. Declares `mod parsing` and forwards to it.
+    function(sql) -> parsing::parse_sql,
+    // The name can be left out, and is then taken from the last path segment,
+    // so this one is called `tokenize`.
+    function -> parsing::tokenize,
+    // `parsing` is already declared by the first entry, so say `use` rather
+    // than declaring it a second time.
+    function(lex) -> use parsing::lex,
+
+    // An attribute macro. Its implementation takes two token streams.
+    attribute(instrument) -> tracing_impl::instrument,
+    // Modules nest to any depth.
+    attribute(cached) -> caching::memo::store::apply,
+
+    // A derive. The name in parentheses is what deriving types write.
+    derive(Builder) -> derives::builder,
+    // Helper attributes go beside it, and there can be any number.
+    derive(Validate, attributes(required, length, range)) -> derives::validate,
+
+    // The implementation can also be a file that is not part of the module tree,
+    // named relative to this one.
+    function(greet) -> "impls/hello.rs"::greet,
+    // Or relative to the crate root, with a leading `@`.
+    derive(Display) -> @"tests/fixtures/display.rs"::display,
 );
 ```
 
-### Previous version notes
+The implementations are ordinary functions. They carry no `#[proc_macro]` attribute,
+because they cannot: that attribute is only legal at the crate root, which is the
+restriction being worked around.
+
+```rust,ignore
+// parsing.rs
+use proc_macro::TokenStream;
+
+pub fn parse_sql(input: TokenStream) -> TokenStream { /* ... */ }
+pub fn tokenize(input: TokenStream) -> TokenStream { /* ... */ }
+```
+
+### Where an implementation can be
+
+The same forms work for all three kinds of macro and in every position, because they are
+read by one shared piece of the crate rather than reimplemented per kind.
+
+| Form | Means |
+|---|---|
+| `f` | `f` is already in scope |
+| `use f` | the same, said explicitly |
+| `m::f` | declare `mod m`, call `m::f` |
+| `mod m::f` | the same, said explicitly |
+| `use m::f` | `m` is already declared |
+| `a::b::c::f` | declare `mod a`, call `a::b::c::f` |
+| `use a::b::c::f` | `a` is already declared |
+| `crate::m::f`, `self::m::f` | already reachable, so nothing is declared |
+| `"path/to/file.rs"::f` | a file, named relative to the invocation |
+| `@"path/from/crate/root.rs"::f` | a file, named relative to the crate root |
+
+Leaving the macro name out is available for `function` and `attribute`, and takes the
+name from the path's last segment. It is refused for a path that is a bare name, because
+the generated item would then take that same name in that same scope and shadow the
+function it means to call. A derive always names itself, since the name is what the
+deriving type writes.
+
+### The single forms
+
+`macros!` is a convenience over three macros that do one declaration each, and they are
+available directly when that reads better:
+
+```rust,ignore
+include_proc_macro::proc_macro!(sql -> parsing::parse_sql);
+include_proc_macro::attr_macro!(instrument -> tracing_impl::instrument);
+include_proc_macro::derive_macro!((Validate, attributes(required)) -> derives::validate);
+```
+
+## Why the examples say `ignore`
+
+Every code block here is marked `rust,ignore`, and that is structural rather than
+neglect. These macros expand to items carrying `#[proc_macro]`, which rustc accepts only
+in a crate whose manifest sets `proc-macro = true`. A doctest is compiled as an ordinary
+crate, so a doctest of this crate cannot be made to pass no matter what it contains.
+
+What checks them instead is `arm_matrix/` and `arm_matrix_test/` in the repository: every
+form in the table above, against every kind of macro and every way of declaring one, each
+asserted to produce its own distinct output. The refusals have their own compile-fail
+suite. A form that appears in this README and does not work is a failing build there.
+
+## Runnable examples
+
+Three of them, under `integration_test/examples/`, each runnable on its own:
+
+```text
+cargo run -p integration_test --example one_function_macro
+cargo run -p integration_test --example all_three_kinds
+cargo run -p integration_test --example every_path_form
+```
+
+The first is the smallest thing that works: one function-like macro, declared and called.
+The second reaches all three kinds of macro from one declaration block. The third walks
+every path form in the table above, one line of output per form.
+
+They are run by `cargo test`, in `integration_test/tests/examples_run.rs`, which checks
+what each one prints rather than only that it built.
+
+## Features
+
+Neither changes what the crate does, and both exist so a consumer can name them.
+
+| Feature | Effect |
+|---|---|
+| `no_std` | Adds `#![no_std]`. The crate is `macro_rules!` only, so this is the attribute and nothing more. |
+| `no_alloc` | Implies `no_std`. States what is already true: nothing here allocates. |
+
+What a macro from here expands into is a `#[proc_macro]` entry point, and a proc-macro
+crate cannot be `no_std` whatever this crate does, because it runs on the host inside the
+compiler. `tests/feature_matrix.rs` builds under each selection and asserts the macros
+still expand.
+
+## What you would write otherwise
 
 <details>
-<summary>Breaking changes in 2.0.0</summary>
-
-Version 2.0.0 completely overhauls the api and the way the macros are used:
+<summary>The same nine declarations, by hand</summary>
 
 ```rust,ignore
-// old:
-include_proc_macro::include_proc_macro!(
-    "some/path/to/file",
-    alternatively / using / idents
-);
-// this would often cause name clashes, competing implementations
-// and other issues, and was fairly unusable/unneeded outside of very niche applications.
-// it was also only for including external macros from arbitrary paths,
-// which still resulted in you having to be verbose or otherwise tricky with other macros
-// in the crate's module tree
-```
-
-For better readability, increased control, and making use of different types of proc macros in a single crate easier, the syntax evolved thus:
-
-```rust,ignore
-// new:
-include_proc_macro::macros!(
-    // literal paths are still supported (relative and absolute), but need
-    // an explicit macro name in parentheses
-    function(macro_impl) -> "old/style/literal/path/inclusion"::macro_impl,
-    // "just works" with a normal, single-level module path
-    attribute -> nested_mods::attr_impl,
-    // with a `@` prefix we can more conveniently include macro implementations from 
-    // paths at custom source dir within the crate, such as tests
-    derive(MacroName) -> @"this/path/is/relative/to/crate/root"::derive_impl 
-);
-// now we hide implementation details within modules, and delegate to them
-// within the crate root. should be fairly clash-free, and handles
-// pretty much all the macros you'd want in a single proc-macro crate
-```
-
-</details>
-
-## Example
-
-```rust,ignore
-use include_proc_macro::macros;
-
-// we can define multiple macros in a single go, separated by commas
-macros!(
-    // for normal function-like proc macros we use `function`
-    function -> implement::generate_function,
-    // can define explicit custom macro names. here the macro would be `my_macro_name`
-    // (otherwise we just inherit the name of the function). `implement` was already
-    // declared above, so this second reference uses `use` instead of redeclaring it
-    function(my_macro_name) -> use implement::another_function,
-
-    // with the `attribute` keyword, we can define attribute macros
-    attribute -> attr_impl::generate_attr,
-    // `attr_impl` was already declared above, so this reuses it with `use`
-    attribute(custom_attr) -> use attr_impl::custom_implementation,
-
-    // `derive` is for derive macros, and the name in parentheses is the actual derive name
-    // (the generated function takes the derive's name too)
-    derive(DebugImpl) -> derive_impl::implement_debug,
-    // `derive_impl` was already declared above, so this reuses it with `use`
-    derive(DisplayImpl) -> use derive_impl::implement_display,
-    
-    // derive macros with helper attributes can be specified with the attributes() syntax
-    derive(NodeTypeChecks, attributes(node_category)) -> derive_impl_with_attrs::impl_with_attributes,
-    // you can specify multiple helper attributes by separating them with commas
-    derive(ComplexMacro, attributes(field, skip, rename)) -> derive_complex::implementation,
-
-    // for already imported modules, use the `use` keyword
-    function(imported_fn) -> use preexisting_mod::function_impl,
-    attribute(imported_attr) -> use imported_attr_mod::attr_impl,
-    derive(ImportedDerive, attributes(helper)) -> use imported_derive_mod::derive_impl,
-    
-    // can explicitly declare modules with the `mod` keyword for readability/clarity
-    function(explicit_fn) -> mod explicit_mod::function_impl,
-    attribute(explicit_attr) -> mod explicit_attr_mod::attr_impl,
-    
-    // include external files like so (literal paths need an explicit macro name):
-    function(function_name) -> "path/to/file"::function_name,
-    // with `@` prefix for paths relative to crate root
-    attribute -> @"custom/src_dir"::attr_function,
-    // `derive` only supports crate-relative (`@`) literal paths, not bare
-    // absolute/relative ones (those are supported for `function`, see above)
-    derive(DefaultImpl) -> @"path/to/default_impl.rs"::default_impl
-);
-```
-
-Though it doesn't look like much, this would save you *a
-lot* of boilerplate, though the average case would likely not have so many macros defined in a single crate. But hey, you can do it if you want to, and now it won't look like a mess.
-
-### Comparison
-
-<details>
-<summary>Click to expand a comparison</summary>
-
-This short and sweet bit is what we can have, if we use this crate:
-
-```rust,ignore
-macros!(
-    function -> foo::bar,
-    attribute(generate_documentation) -> attr_impl::gen_doc,
-    derive(DefaultImpl) -> derive_impl::impl_default,
-    derive(NodeTypeChecks, attributes(node_category)) -> derive_impl_with_attrs::impl_with_attributes,
-    derive(Validate, attributes(required, length, range)) -> derive_multiple_attrs::generate_validation,
-    // `foo` was already declared above, so this reuses it with `use`
-    function(fizz) -> use foo::fizzbuzz,
-    function(greet) -> "hello.rs"::hello,
-    attribute(derive_debug) -> @"test/inner.rs"::attr_derive_debug,
-    derive(DisplayImpl) -> @"test/subdir/subdir.rs"::generate_display_impl,
-    // using the new module handling syntax:
-    function(reuse_module) -> use already_imported::reuse_func,
-    attribute(explicit_mod) -> mod explicitly_declared::attr_func,
-    derive(ImportedMacro) -> use imported_derive_mod::derive_func
-);
-```
-
-Otherwise it could look something like this:
-
-```rust,ignore
-mod foo;
-mod attr_impl;
-mod derive_impl;
-mod derive_impl_with_attrs;
-mod derive_multiple_attrs;
-use already_imported;
-use imported_derive_mod;
-mod explicitly_declared;
+mod parsing;
+mod tracing_impl;
+mod caching;
+mod derives;
 
 #[proc_macro]
-pub fn bar(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    foo::bar(input)
+pub fn sql(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    parsing::parse_sql(input)
+}
+#[proc_macro]
+pub fn tokenize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    parsing::tokenize(input)
+}
+#[proc_macro]
+pub fn lex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    parsing::lex(input)
 }
 #[proc_macro_attribute]
-pub fn generate_documentation(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    attr_impl::gen_doc(attr, item)
+pub fn instrument(
+    attr: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    tracing_impl::instrument(attr, item)
+}
+#[proc_macro_attribute]
+pub fn cached(
+    attr: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    caching::memo::store::apply(attr, item)
 }
 #[allow(non_snake_case)]
-#[proc_macro_derive(DefaultImpl)]
-pub fn impl_default(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_impl::impl_default(input)
-}
-#[allow(non_snake_case)]
-#[proc_macro_derive(NodeTypeChecks, attributes(node_category))]
-pub fn impl_with_attributes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_impl_with_attrs::impl_with_attributes(input)
+#[proc_macro_derive(Builder)]
+pub fn Builder(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derives::builder(input)
 }
 #[allow(non_snake_case)]
 #[proc_macro_derive(Validate, attributes(required, length, range))]
-pub fn generate_validation(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_multiple_attrs::generate_validation(input)
-}
-#[proc_macro]
-pub fn fizz(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    foo::fizzbuzz(input)
+pub fn Validate(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derives::validate(input)
 }
 #[proc_macro]
 pub fn greet(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    #[path = "hello.rs"]
+    #[path = "impls/hello.rs"]
     mod __inner;
-    __inner::hello(input)
-}
-#[proc_macro_attribute]
-pub fn derive_debug(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    mod __inner {
-        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/test/inner.rs"));
-    }
-    __inner::attr_derive_debug(attr, item)
+    __inner::greet(input)
 }
 #[allow(non_snake_case)]
-#[proc_macro_derive(DisplayImpl)]
-pub fn DisplayImpl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_derive(Display)]
+pub fn Display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     mod __inner {
-        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/test/subdir/subdir.rs"));
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/display.rs"));
     }
-    __inner::generate_display_impl(input)
-}
-#[proc_macro]
-pub fn reuse_module(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    already_imported::reuse_func(input)
-}
-#[proc_macro_attribute]
-pub fn explicit_mod(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    explicitly_declared::attr_func(attr, item)
-}
-#[allow(non_snake_case)]
-#[proc_macro_derive(ImportedMacro)]
-pub fn ImportedMacro(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    imported_derive_mod::derive_func(input)
+    __inner::display(input)
 }
 ```
 
 </details>
 
-### In practice
+## Cost
 
-This crate reduces the boilerplate needed when working with procedural macros, especially if there are many of them in a large codebase.
+All of it happens during expansion, so nothing reaches the compiled artifact that you
+would not have written yourself, and crates that *use* your macros are unaffected: they
+depend on your proc-macro crate, not on this one. Your own crate takes one more
+dependency to compile, which has no dependencies of its own.
 
-Instead of writing out each proc macro definition by explicitly delegating to its implementation, in the crate root, repetitively, with all the proper attributes and function signatures, you can instead just use the `macros!` syntax to define them all without thinking about the boilerplate.
-
-Also, the ability to fairly cleanly import implementations from external files can be useful for some use cases, such as when you want to keep your macro implementations separate from the main codebase, for whatever reason, have procedural macro tests and want to organize them better, or something wild like allow for external proc macro injection.
-
-## The problem
-
-Rust's procedural macro system requires all procedural macros to be defined at the crate root. This can lead to a gigantic, hard-to-navigate root module, and even if avoiding that some way, e.g by separating impls from the macro declarations like this crate does under-the-hood, it's all still very verbose and repetitive to write. It's a little bit tedious to organize larger proc macro codebases with multiple kinds of macro implementations, if you want to keep them in the same crate.
-
-This crate solves these problems by:
-
-1. Providing a concise, declarative syntax for defining all types of procedural macros
-2. Supporting imports from various module paths and even external files
-3. Allowing for custom naming of macros separate from their implementation
-4. Enabling batch definitions for much prettier and more readable root module
-
-This is all done via the macro, at compile time, so there is no runtime overhead or other similar implications to consider. The compilation time is slightly increased (due to this dependency), but this is of course only for your proc macro crate, and not for the actual code that uses the macros. For most use cases, you won't notice any side effects.
+`macros!` recurses once per declaration rather than once per token, which keeps a long
+list comfortably inside the default recursion limit of 128. A hundred declarations in a
+single invocation is asserted in the test suite. Well past that, either split the list or
+raise `#![recursion_limit]`.
 
 ## Support
 

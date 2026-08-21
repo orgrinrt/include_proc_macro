@@ -1,3 +1,26 @@
+/// Proof that `generate_documentation` emits documentation, rather than merely
+/// compiling.
+///
+/// A doc comment becomes `#[doc = "..."]` and is gone by runtime, so no assertion
+/// can read one. `missing_docs` can: it is the compiler asking the same question,
+/// at the only point where the answer still exists. Remove the attribute below and
+/// this module stops building.
+///
+/// This replaces a test that formatted a string, dropped it, and carried the note
+/// `// TODO: how to test doc string?`. It passed for as long as it existed and
+/// could not have failed.
+#[deny(missing_docs)]
+pub mod documented {
+    use examples::generate_documentation;
+
+    #[generate_documentation("a struct that carries documentation the macro wrote")]
+    pub struct Carries {
+        /// A field, documented by hand so that only the struct's own documentation
+        /// is under test.
+        pub field: String,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use examples::{
@@ -36,15 +59,17 @@ mod tests {
 
     #[test]
     fn test_gen_doc_attr_macro() {
-        #[generate_documentation]
+        // The runtime half: the attribute must leave the item usable. What it
+        // actually emits is asserted at compile time, in `documented` above,
+        // because a doc comment does not survive to runtime in any readable form.
+        #[generate_documentation("a struct used by the attribute test")]
         struct TestStruct {
             field: String,
         }
         let test = TestStruct {
             field: "Hello".to_string(),
         };
-        let doc_str = format!("generate_documentation {}", test.field);
-        // TODO: how to test doc string?
+        assert_eq!(test.field, "Hello");
     }
 
     #[test]

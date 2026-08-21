@@ -1,0 +1,18 @@
+error[E0599]: the function or associated item `default` exists for struct `Phantom<NotDefault>`, but its trait bounds were not satisfied
+  --> tests/ui/default_impl_phantom_parameter.rs
+   |
+   | struct Phantom<T> {
+   | ----------------- function or associated item `default` not found for this struct because it doesn't satisfy `Phantom<NotDefault>: Default`
+...
+   | struct NotDefault;
+   | ----------------- doesn't satisfy `NotDefault: Default`
+...
+   |     let _ = Phantom::<NotDefault>::default();
+   |                                    ^^^^^^^ function or associated item cannot be called on `Phantom<NotDefault>` due to unsatisfied trait bounds
+   |
+   = note: trait bound `NotDefault: Default` was not satisfied
+help: consider annotating `NotDefault` with `#[derive(Default)]`
+   |
+16 + #[derive(Default)]
+17 | struct NotDefault;
+   |
