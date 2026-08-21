@@ -1,0 +1,7 @@
+error: DefaultImpl can only be derived for structs
+ --> tests/ui/default_impl_on_an_enum.rs
+  |
+  | #[derive(DefaultImpl)]
+  |          ^^^^^^^^^^^
+  |
+  = note: this error originates in the derive macro `DefaultImpl` (in Nightly builds, run with -Z macro-backtrace for more info)

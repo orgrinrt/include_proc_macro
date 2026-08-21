@@ -11,6 +11,10 @@
 // So the features exist to be declarable by a consumer whose workspace turns them on
 // everywhere, and to be checked rather than assumed: `tests/feature_matrix.rs` builds the
 // crate under each and asserts the macros still expand.
+//
+// `no_alloc` is an alias for `no_std` and nothing in this crate reads it. No test
+// distinguishes the two, because there is nothing to distinguish: nothing here
+// allocates, so there is nothing for it to switch off.
 
 // The three kinds of procedural macro differ in exactly three ways: the attribute
 // they carry, the arguments they take, and how the implementation is called. Every

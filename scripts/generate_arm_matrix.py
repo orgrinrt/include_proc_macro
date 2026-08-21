@@ -1,9 +1,19 @@
 import os, shutil, sys
 root="arm_matrix"; tst="arm_matrix_test"
-# Only the generated trees go. `arm_matrix_test/tests/` is hand-written and must
-# survive: an earlier version of this script removed it, the compile-fail suite
-# vanished with it, and the workspace stayed green while nothing pinned the
-# refusals any more.
+
+# This script lives in `scripts/` rather than in `arm_matrix/`, which is the tree it is
+# about to remove. It used to live there, and the first run deleted it: the sole means of
+# regenerating 106 files was destroyed by the first regeneration, and the comment below
+# already named that exact class one line above the instance that did it.
+#
+# Only the generated trees go. `arm_matrix_test/tests/` is hand-written and must survive: an
+# earlier version of this script removed it, the compile-fail suite vanished with it, and
+# the workspace stayed green while nothing pinned the refusals any more.
+here = os.path.abspath(__file__)
+for doomed in (root, f"{tst}/src"):
+    if here.startswith(os.path.abspath(doomed) + os.sep):
+        sys.exit(f"refusing to run: this script is inside {doomed}, which it deletes")
+
 shutil.rmtree(root, ignore_errors=True)
 shutil.rmtree(f"{tst}/src", ignore_errors=True)
 os.makedirs(f"{root}/src/impls", exist_ok=True); os.makedirs(f"{tst}/src", exist_ok=True)

@@ -6,6 +6,12 @@ edition = "2021"
 # Verified by expanding every documented form under 1.56.1, not merely by
 # building the macro definitions: a macro_rules body is not checked until it is
 # used. 1.56 is also the floor for edition 2021.
+#
+# Checked rather than remembered, by `tests/feature_matrix.rs`, which builds the macro
+# definitions as a standalone crate under 1.56.1. It is `#[ignore]`d, because it needs a
+# toolchain most machines do not have; `cargo test -- --ignored` runs it. What it does
+# not check is that every documented form expands under 1.56, which an earlier comment
+# here claimed on the strength of one hand check nobody could repeat.
 rust-version = "1.56"
 description = """
 A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
@@ -28,7 +34,7 @@ members = [
 
 [dependencies]
 
-[clippy]
+[package.metadata.clippy]
 default-features = true
 extra-plugins = [
     "clippy::pedantic",
@@ -43,10 +49,17 @@ extra-plugins = [
 ]
 
 [features]
-# The crate is `macro_rules!` only, so `no_std` is the attribute and nothing else, and
-# `no_alloc` states what is already true rather than changing anything. Both exist so a
-# consumer whose workspace enables them everywhere can, and so that the claim is checked by
-# `tests/feature_matrix.rs` rather than believed.
 default = []
+# The attribute and nothing else. The crate is `macro_rules!` only: it names no type, calls
+# no function, and touches neither std nor an allocator at any point.
 no_std = []
+# An alias for `no_std`, and nothing in `src/` reads it. That is deliberate and is what it
+# can honestly be: nothing here allocates, so there is nothing for it to switch off, and
+# what a macro from here expands into is a `#[proc_macro]` entry point, which allocates
+# freely and cannot be `no_std` whatever this crate declares.
+#
+# It exists so a consumer whose workspace turns it on everywhere can name it without the
+# build failing on an unknown feature. `tests/feature_matrix.rs` builds under it and
+# asserts the macros still expand; no test can distinguish it from `no_std`, because there
+# is nothing to distinguish.
 no_alloc = ["no_std"]

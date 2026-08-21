@@ -6,3 +6,6 @@ edition = "2021"
 
 [dependencies]
 examples = { path = "../examples" }
+
+[dev-dependencies]
+trybuild = "1.0"

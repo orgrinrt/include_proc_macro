@@ -75,3 +75,32 @@ fn a_bound_on_the_parameter_survives() {
     // it in argument position, which is the difference between this compiling and not.
     assert_eq!(Bounded::<u8>::default(), Bounded { held: 0 });
 }
+
+#[derive(DefaultImpl, Debug, PartialEq)]
+struct Phantom<T> {
+    marker: core::marker::PhantomData<T>,
+    count:  u8,
+}
+
+/// A type with no `Default` of its own, to stand in the phantom slot.
+#[derive(Debug, PartialEq)]
+struct NotDefault;
+
+#[test]
+fn a_parameter_no_field_uses_still_gets_the_bound() {
+    // The direction the six cases above cannot show. Every one of them uses its type
+    // parameter in a field, so an implementation that bounded only the parameters its
+    // fields use would pass all six, and this is where it would part company with the
+    // standard library.
+    //
+    // `#[derive(Default)]` bounds every parameter regardless of use, so
+    // `Phantom<NotDefault>` has no `Default` even though nothing in it needs one.
+    // Reproducing that is the claim, and this is what pins it.
+    let with_default: Phantom<u8> = Phantom::default();
+    assert_eq!(with_default, Phantom { marker: core::marker::PhantomData, count: 0 });
+
+    // And the other half, as a compile-fail case: `Phantom::<NotDefault>::default()` must
+    // not resolve. It lives in `arm_matrix_test/tests/ui/`, because a refusal asserted in
+    // prose is a refusal nothing pins.
+    let _ = NotDefault;
+}
