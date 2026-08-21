@@ -120,6 +120,37 @@ form in the table above, against every kind of macro and every way of declaring 
 asserted to produce its own distinct output. The refusals have their own compile-fail
 suite. A form that appears in this README and does not work is a failing build there.
 
+## Runnable examples
+
+Three of them, under `integration_test/examples/`, each runnable on its own:
+
+```text
+cargo run -p integration_test --example one_function_macro
+cargo run -p integration_test --example all_three_kinds
+cargo run -p integration_test --example every_path_form
+```
+
+The first is the smallest thing that works: one function-like macro, declared and called.
+The second reaches all three kinds of macro from one declaration block. The third walks
+every path form in the table above, one line of output per form.
+
+They are run by `cargo test`, in `integration_test/tests/examples_run.rs`, which checks
+what each one prints rather than only that it built.
+
+## Features
+
+Neither changes what the crate does, and both exist so a consumer can name them.
+
+| Feature | Effect |
+|---|---|
+| `no_std` | Adds `#![no_std]`. The crate is `macro_rules!` only, so this is the attribute and nothing more. |
+| `no_alloc` | Implies `no_std`. States what is already true: nothing here allocates. |
+
+What a macro from here expands into is a `#[proc_macro]` entry point, and a proc-macro
+crate cannot be `no_std` whatever this crate does, because it runs on the host inside the
+compiler. `tests/feature_matrix.rs` builds under each selection and asserts the macros
+still expand.
+
 ## What you would write otherwise
 
 <details>

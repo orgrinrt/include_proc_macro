@@ -1,4 +1,16 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/", "README.md"))]
+#![cfg_attr(feature = "no_std", no_std)]
+
+// `no_std` here is the attribute and nothing else, and `no_alloc` is a statement rather than
+// a change. This crate is `macro_rules!` and nothing but: it names no type, calls no
+// function, and touches neither `std` nor an allocator at any point. What it expands *into*
+// is a `#[proc_macro]` entry point, and a proc-macro crate cannot be `no_std` whatever this
+// one does, because it runs on the host inside the compiler and syn, quote and proc-macro2
+// all use std.
+//
+// So the features exist to be declarable by a consumer whose workspace turns them on
+// everywhere, and to be checked rather than assumed: `tests/feature_matrix.rs` builds the
+// crate under each and asserts the macros still expand.
 
 // The three kinds of procedural macro differ in exactly three ways: the attribute
 // they carry, the arguments they take, and how the implementation is called. Every

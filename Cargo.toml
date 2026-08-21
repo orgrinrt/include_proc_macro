@@ -41,3 +41,12 @@ extra-plugins = [
     "+clippy::suspicious",
     "+clippy::deprecated"
 ]
+
+[features]
+# The crate is `macro_rules!` only, so `no_std` is the attribute and nothing else, and
+# `no_alloc` states what is already true rather than changing anything. Both exist so a
+# consumer whose workspace enables them everywhere can, and so that the claim is checked by
+# `tests/feature_matrix.rs` rather than believed.
+default = []
+no_std = []
+no_alloc = ["no_std"]
