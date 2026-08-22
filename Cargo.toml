@@ -1,6 +1,5 @@
 [package]
 name = "include_proc_macro"
-authors = ["orgrinrt", "Hiisi Digital"]
 version = "2.1.0"
 edition = "2021"
 # Verified by expanding every documented form under 1.56.1, not merely by
@@ -19,6 +18,7 @@ A convenient macro for working with multiple procedural macros in one crate, and
 license = "MPL-2.0"
 readme = "README.md"
 keywords = ["procedural-macros", "proc-macro", "derive", "attribute-macros", "macro-helpers"]
+exclude = [".idea/", "target/"]
 categories = ["development-tools", "development-tools::procedural-macro-helpers"]
 documentation = "https://docs.rs/include_proc_macro"
 homepage = "https://github.com/orgrinrt/include_proc_macro"

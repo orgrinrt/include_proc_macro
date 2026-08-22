@@ -28,6 +28,19 @@ where the implementation lives, and the delegation is generated. There is nothin
 runtime and no dependencies; it is one `macro_rules!` file that expands to the code you
 would otherwise type.
 
+## Installation
+
+```bash
+cargo add include_proc_macro
+```
+
+Or in `Cargo.toml`:
+
+```toml
+[dependencies]
+include_proc_macro = "2.1"
+```
+
 ## Usage
 
 ```rust,ignore
