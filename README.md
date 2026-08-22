@@ -1,14 +1,14 @@
-include_proc_macro
-============
+# `include_proc_macro`
 
-<div style="text-align: center;">
+<div align="center" style="text-align: center;">
 
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/stargazers)
-[![Crates.io Total Downloads](https://img.shields.io/crates/d/include_proc_macro)](https://crates.io/crates/include_proc_macro)
+[![Crates.io](https://img.shields.io/crates/v/include_proc_macro)](https://crates.io/crates/include_proc_macro)
+[![docs.rs](https://img.shields.io/docsrs/include_proc_macro)](https://docs.rs/include_proc_macro)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
-[![Current Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/orgrinrt/include_proc_macro)
+![License](https://img.shields.io/github/license/orgrinrt/include_proc_macro?color=%23009689)
 
-> A convenient macro for working with multiple procedural macros in one crate, and to import them from any arbitrary paths. Reduces boilerplate and repetition, and improves readability.
+> One macro for working with several procedural macros in a crate, importable from arbitrary paths.
 
 </div>
 
@@ -27,6 +27,19 @@ This crate writes those stubs. You say what kind of macro it is, what it is call
 where the implementation lives, and the delegation is generated. There is nothing at
 runtime and no dependencies; it is one `macro_rules!` file that expands to the code you
 would otherwise type.
+
+## Installation
+
+```bash
+cargo add include_proc_macro
+```
+
+Or in `Cargo.toml`:
+
+```toml
+[dependencies]
+include_proc_macro = "2.1"
+```
 
 ## Usage
 
@@ -236,6 +249,8 @@ Whether you use this project, have learned something from it, or just like it, p
 
 ## License
 
-> You can check out the full license [here](https://github.com/orgrinrt/include_proc_macro/blob/main/LICENSE)
+> The project is licensed under the **Mozilla Public License 2.0**.
 
-This project is licensed under the terms of the **MPL-2.0** license.
+`SPDX-License-Identifier: MPL-2.0`
+
+> You can check out the full license [here](https://github.com/orgrinrt/include_proc_macro/blob/dev/LICENSE)
