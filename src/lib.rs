@@ -204,9 +204,9 @@ macro_rules! __ipm_infer_name {
 /// Defines a function-like procedural macro whose implementation lives elsewhere.
 ///
 /// The implementation is an ordinary function taking and returning a
-/// `proc_macro::TokenStream`. It carries no `#[proc_macro]` attribute, because it
-/// cannot: that attribute is only legal on a public item at the root of a
-/// proc-macro crate, which is the restriction this crate exists to work around.
+/// `proc_macro::TokenStream`, with no `#[proc_macro]` attribute on it, as that one is
+/// only legal on a public item at the root of a proc-macro crate. The generated item
+/// carries it instead.
 ///
 /// ## Where the implementation can be
 ///
@@ -239,8 +239,8 @@ macro_rules! proc_macro {
 /// arguments and the item it is applied to, and returns the replacement item.
 ///
 /// The implementation path takes the same forms as
-/// [`proc_macro!`](crate::proc_macro); the grammar is shared rather than
-/// reimplemented, which is what keeps the two from disagreeing.
+/// [`proc_macro!`](crate::proc_macro), since one shared grammar reads it for all
+/// three kinds.
 #[macro_export]
 macro_rules! attr_macro {
     ($name:ident -> $($spec:tt)+) => {
@@ -292,8 +292,8 @@ macro_rules! derive_macro {
 /// names itself, because the name is what the deriving type writes.
 ///
 /// The implementation path takes the same forms as
-/// [`proc_macro!`](crate::proc_macro), file paths included. The grammar is shared
-/// with the single-macro forms rather than enumerated a second time here.
+/// [`proc_macro!`](crate::proc_macro), file paths included, and the table there is the
+/// whole of it, as the list form reads paths through the same grammar.
 #[macro_export]
 macro_rules! macros {
     ($($entries:tt)*) => {
@@ -311,12 +311,11 @@ macro_rules! macros {
 /// at a time reached the default recursion limit of 128 at about twenty entries,
 /// because `::` is two token trees and an entry is roughly ten; separating the
 /// head from the path cost a second level and capped it near sixty. Declaring many
-/// macros in one crate is what this crate is for, so the limit sat across the
-/// intended use rather than beyond it.
+/// macros in one crate is what this crate is for, so that limit sat inside the
+/// intended use.
 ///
 /// The arms differ only in where a path ends. What a path means is decided once,
-/// by `__ipm_resolve`, which is what keeps the list form and the single-macro
-/// forms from drifting apart.
+/// by `__ipm_resolve`, for the list form and the single-macro forms alike.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __ipm_split {
