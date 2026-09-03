@@ -219,6 +219,7 @@ macro_rules! __ipm_infer_name {
 /// | `name -> use m::f` | `m` is already declared |
 /// | `name -> a::b::c::f` | declare `mod a`, call `a::b::c::f` |
 /// | `name -> use a::b::c::f` | `a` is already declared |
+/// | `name -> crate::m::f`, `name -> self::m::f` | already reachable, so nothing is declared |
 /// | `name -> "path/to/file.rs"::f` | a file, relative to this one |
 /// | `name -> @"path/from/crate/root.rs"::f` | a file, relative to the crate root |
 ///

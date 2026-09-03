@@ -8,21 +8,21 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/include_proc_macro?color=%23009689)
 
-> A `macro_rules!` for declaring several procedural macros in one crate, with the implementations wherever they happen to live.
+> A `macro_rules!` for declaring a crate's procedural macros in one list, with the implementations wherever they happen to live.
 
 </div>
 
-Every procedural macro has to be a public function at the root of a proc-macro crate, carrying the
-right attribute and the exact signature for its kind, but the implementation doesn't have to be
-there, and in a crate with more than a handful of macros it probably shouldn't be. What ends up at
-the root is then a stack of delegating stubs, a `mod` line, an attribute, a signature and a one-line
-body forwarding to the real function, repeated once per macro with only the names changing between
-them.
+A procedural macro has to be a public function at the root of its proc-macro crate, carrying the
+attribute for its kind and the exact signature that kind takes, but the implementation need not be
+there, and in a crate with more than a handful of macros it probably shouldn't be either. What the
+root then ends up holding is a stack of delegating stubs, each one a `mod` line, an attribute, a
+signature and a one-line body forwarding to the real function, repeated per macro with only the
+names changing between them.
 
 This crate writes those stubs. A declaration says what kind of macro it is, what it's called and
-where the implementation is, and the delegation is generated from that, including the `mod`
-declaration where one is needed. The implementations stay ordinary functions in ordinary modules,
-or in files outside the module tree altogether, since a path form exists for that too.
+where the implementation is, and the delegation gets generated from that, `mod` declaration
+included where one is needed. The implementations stay ordinary functions in ordinary modules, or
+in files outside the module tree altogether, since there's a path form for that too.
 
 It's `macro_rules!` only, with no dependencies of its own, so all of it happens during expansion and
 nothing new reaches the compiled artifact. Crates using the macros aren't affected either way, as
@@ -45,15 +45,14 @@ include_proc_macro::attr_macro!(instrument -> tracing_impl::instrument);
 include_proc_macro::derive_macro!((Validate, attributes(required)) -> derives::validate);
 ```
 
-Do note that every rust block in here that declares a macro is marked `ignore`. The output carries
+Do note that the rust blocks declaring a macro are marked `ignore` here. The output carries
 `#[proc_macro]`, which rustc accepts only in a crate whose manifest says `proc-macro = true`, and a
-doctest is compiled as an ordinary crate, so these can't run as doctests whatever they contain. They
-are checked elsewhere instead, in the `arm_matrix_test/` crate of the repository, which asserts every
-path form against every kind of macro and every way of naming one, with the refusals in a
-compile-fail suite of their own.
+doctest is compiled as an ordinary crate, so these can't run as doctests whatever they contain.
+They're checked in the repository's `arm_matrix_test/` crate instead, every path form against every
+kind and every way of naming one, with the refusals in a compile-fail suite beside it.
 
-The implementation path takes the same forms for all three kinds, and in the list form too, because
-one shared piece of the crate reads them, whichever kind is being declared:
+The implementation path takes the same forms for all three kinds, in the list form too, as one
+shared piece of the crate reads them whichever kind is being declared:
 
 | Form | Means |
 |---|---|
@@ -69,16 +68,16 @@ one shared piece of the crate reads them, whichever kind is being declared:
 | `@"path/from/crate/root.rs"::f` | a file, named relative to the crate root |
 
 The `mod` form is what a bare path means anyway, so it's there for readability, and `use` is for a
-module that some earlier line already declared, since declaring it twice is an error. Leaving the
-macro name out is possible in the list form for `function` and `attribute`, in which case the name
-comes from the last segment of the path, though it's refused for a path that is a bare name, as the
-generated item would then take the same name in the same scope and shadow the function it means to
-call. A derive always names itself, since the name is what the deriving type writes.
+module some earlier line already declared, since declaring it twice is an error. In the list form
+the macro name can be left out for `function` and `attribute`, in which case it comes from the last
+segment of the path, though not for a path that is a bare name, as the generated item would then
+take the same name in the same scope and shadow the function it means to call. A derive always
+names itself, the name being what the deriving type writes.
 
 ## Example
 
 Here's a proc-macro crate root with all three kinds in one block, and most of the path forms in
-use. The comments say what each line does:
+use:
 
 ```rust,ignore
 use include_proc_macro::macros;
@@ -109,8 +108,7 @@ macros!(
 ```
 
 The implementations on the other side are plain functions with the token stream signature of their
-kind and no attribute on them, as the attribute is only legal at the crate root, which is the
-restriction being worked around here:
+kind and no attribute on them, the attribute being legal at the crate root only:
 
 ```rust
 # extern crate proc_macro;
@@ -131,9 +129,8 @@ pub fn lex(input: TokenStream) -> TokenStream {
 }
 ```
 
-Though it doesn't look like much, that block above stands in for quite a lot of typing, and the
-average crate would probably not have this many macros in one place anyway. The comparison is
-below, if the difference is worth seeing spelled out.
+That's nine declarations, and what they stand in for is below, though a crate with this many
+macros in one place is probably not the usual case anyway.
 
 <details>
 <summary>The same nine declarations, by hand</summary>
@@ -198,7 +195,7 @@ pub fn Display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 </details>
 
-There are also three runnable examples under `integration_test/examples/` in the repository, one
+There are three runnable examples under `integration_test/examples/` in the repository as well, one
 with a single function-like macro, one reaching all three kinds from one block, and one walking
 every path form in the table with a line of output per form:
 
@@ -208,17 +205,16 @@ cargo run -p integration_test --example all_three_kinds
 cargo run -p integration_test --example every_path_form
 ```
 
-`cargo test` runs them too and checks what each one prints, so an example that compiles and then
-prints the wrong thing is a failing test.
+`cargo test` runs them too and checks what each one prints.
 
 ## Motivation
 
 A proc macro has to be a public function at the root of its crate, which either leaves the root
-module gigantic and hard to find anything in, or, if the implementations are moved out into modules
+module gigantic and hard to find anything in, or, with the implementations moved out into modules
 the way this crate does underneath, leaves it full of the same delegation written over and over,
-with all the attributes and signatures spelled out each time. It's tedious more than
-anything, and in a larger proc-macro crate with several kinds of macro in it, the root stops saying
-anything useful about what the crate exports.
+attributes and signatures spelled out each time. It's tedious more than anything, and in a larger
+proc-macro crate with several kinds of macro in it the root stops saying anything useful about what
+the crate exports.
 
 So the point here is a declaration list that reads as an index of the crate, one line per macro
 saying its kind, its name and where the code is, with the delegation generated instead of typed.
@@ -234,14 +230,14 @@ recursion limit of 128. Past that, splitting the list or raising `#![recursion_l
 
 ### Status
 
-Every release is tagged and the log between two tags is what actually moved. The floor is rust
-1.56, which is what edition 2021 needs, and the manifest's `rust-version` says so.
+Complete for what it sets out to do, and the 2.x line has only added to it, path forms and the
+two features, with nothing taken away. The floor is rust 1.56, which is what edition 2021 needs.
 
 ### Cargo features
 
 | Feature | Default | Effect |
 |---|---|---|
-| `no_std` | off | Adds `#![no_std]` to this crate, which is the attribute and nothing more, as there's no code in here to be affected by it. |
+| `no_std` | off | Adds `#![no_std]` to this crate, which is the attribute and nothing more, there being no code in here for it to affect. |
 | `no_alloc` | off | Implies `no_std`. States what is already the case, since nothing here allocates. |
 
 Both exist so a workspace turning them on everywhere can name them without the build failing on an
@@ -251,18 +247,18 @@ under each selection and asserts they still expand.
 ### Limitations
 
 What the macros expand into is a `#[proc_macro]` entry point, and a proc-macro crate can't be
-`no_std` whatever this one declares, because it runs on the host inside the compiler. So the
-features above are about this crate, and say nothing about the crate using it.
+`no_std` whatever this one declares, since it runs on the host inside the compiler. So the features
+above are about this crate, and say nothing about the crate using it.
 
-There's no `super::` path form, deliberately, since a procedural macro item has to sit at the crate
-root and the root has no parent. An absolute path works in the plain literal form, since it goes straight into
+There's no `super::` path form, since a procedural macro item has to sit at the crate root and the
+root has no parent. An absolute path works in the plain literal form, as it goes straight into
 `#[path]`, though what that means for portability is outside this crate's scope.
 
 ## Support
 
 Feel free to contribute! If unsure about wasting work, the best practice is to throw in an issue describing what you'd do, and only then commit to writing a big PR, because chances are, it might not be something that belongs here. However, forks are always a valid choice and we'd encourage everyone to experiment and have their own takes on this. When doing this, do mind the license(s) though!
 
-A new path form or a new refusal wants a row in the arm matrix and a case in the compile-fail suite beside it, since that is what keeps the three kinds agreeing with each other.
+A new path form or a new refusal wants a row in the arm matrix and a case in the compile-fail suite beside it.
 
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
@@ -274,4 +270,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 `SPDX-License-Identifier: MPL-2.0`
 
-> You can check out the full license [here](https://github.com/orgrinrt/include_proc_macro/blob/dev/LICENSE)
+> You can check out the full license [here](https://github.com/orgrinrt/include_proc_macro/blob/main/LICENSE)
