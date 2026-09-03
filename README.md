@@ -213,10 +213,10 @@ prints the wrong thing is a failing test.
 
 ## Motivation
 
-Rust's procedural macro system wants every proc macro defined at the crate root, which either
-leaves the root module gigantic and hard to find anything in, or, if the implementations are moved out into
-modules the way this crate does underneath, leaves it full of the same delegation written over and
-over, with all the attributes and signatures spelled out each time. It's tedious more than
+A proc macro has to be a public function at the root of its crate, which either leaves the root
+module gigantic and hard to find anything in, or, if the implementations are moved out into modules
+the way this crate does underneath, leaves it full of the same delegation written over and over,
+with all the attributes and signatures spelled out each time. It's tedious more than
 anything, and in a larger proc-macro crate with several kinds of macro in it, the root stops saying
 anything useful about what the crate exports.
 
