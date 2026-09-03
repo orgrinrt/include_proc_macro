@@ -9,10 +9,42 @@
 //! that did it. Naming a class and leaving its instance standing is the failure this file
 //! exists to stop repeating.
 
+use std::ffi::OsStr;
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// The repository root, which is where the generator expects to be run from.
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
+
+/// The probe the guard test drops inside `arm_matrix/`, named once so the walk can skip it.
+const PROBE: &str = "_guard_probe.py";
+
+/// Both tests act on the one `arm_matrix/` tree, so they take turns. Without this the walk
+/// sees the probe between `before` and `after`, or the regeneration deletes the probe before
+/// python opens it and the refusal never prints.
+///
+/// A flag rather than a `Mutex`, because `Mutex::new` is not `const` on the 1.56 floor the
+/// manifest declares. The guard releases on drop, unwinding included, so a failing test does
+/// not hold the tree for the other one.
+static TREE_TAKEN: AtomicBool = AtomicBool::new(false);
+
+struct Tree;
+
+impl Drop for Tree {
+    fn drop(&mut self) {
+        TREE_TAKEN.store(false, Ordering::Release);
+    }
+}
+
+fn take_the_tree() -> Tree {
+    while TREE_TAKEN
+        .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+        .is_err()
+    {
+        std::thread::yield_now();
+    }
+    Tree
+}
 
 /// Runs the generator and returns what it printed.
 fn generate() -> String {
@@ -48,6 +80,9 @@ fn snapshot() -> Vec<(String, Vec<u8>)> {
             let path = entry.path();
             if path.is_dir() {
                 walk(&path, into);
+            } else if path.file_name() == Some(OsStr::new(PROBE)) {
+                // The guard test's probe, which is not part of either tree.
+                continue;
             } else if let Ok(bytes) = std::fs::read(&path) {
                 into.push((path.to_string_lossy().to_string(), bytes));
             }
@@ -64,6 +99,7 @@ fn snapshot() -> Vec<(String, Vec<u8>)> {
 
 #[test]
 fn the_generator_survives_its_own_run_and_changes_nothing() {
+    let _tree = take_the_tree();
     let before = snapshot();
     assert!(
         !before.is_empty(),
@@ -108,11 +144,10 @@ fn the_generator_survives_its_own_run_and_changes_nothing() {
 
 #[test]
 fn the_generator_refuses_to_run_from_inside_a_tree_it_deletes() {
+    let _tree = take_the_tree();
     // The guard, exercised. Without this the check above passes for as long as nobody moves
     // the script back, and moving it back is exactly what a future tidy-up would do.
-    let doomed = std::path::Path::new(ROOT)
-        .join("arm_matrix")
-        .join("_guard_probe.py");
+    let doomed = std::path::Path::new(ROOT).join("arm_matrix").join(PROBE);
     let source =
         std::fs::read_to_string(std::path::Path::new(ROOT).join("scripts/generate_arm_matrix.py"))
             .expect("the generator source");
@@ -120,7 +155,7 @@ fn the_generator_refuses_to_run_from_inside_a_tree_it_deletes() {
     std::fs::write(&doomed, source).expect("the probe copy");
 
     let output = Command::new("python3")
-        .arg("arm_matrix/_guard_probe.py")
+        .arg(format!("arm_matrix/{PROBE}"))
         .current_dir(ROOT)
         .output()
         .expect("python3 runs");
