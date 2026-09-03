@@ -39,7 +39,11 @@ struct Bounded<T: Clone> {
 fn named_fields_default_individually() {
     assert_eq!(
         Named::default(),
-        Named { retries: 0, label: String::new(), enabled: false }
+        Named {
+            retries: 0,
+            label: String::new(),
+            enabled: false
+        }
     );
 }
 
@@ -57,13 +61,24 @@ fn a_unit_struct_has_a_default() {
 fn one_field_is_not_a_special_case() {
     // The shape the old implementation happened to work on, minus the field name it
     // hardcoded. It failing here is what the hardcoding looked like from outside.
-    assert_eq!(OneField::default(), OneField { only: 0 });
+    assert_eq!(
+        OneField::default(),
+        OneField {
+            only: 0
+        }
+    );
 }
 
 #[test]
 fn generics_carry_through_to_the_impl() {
     let d: Generic<i16> = Generic::default();
-    assert_eq!(d, Generic { held: 0, count: 0 });
+    assert_eq!(
+        d,
+        Generic {
+            held: 0,
+            count: 0
+        }
+    );
 
     let nested: Generic<Vec<u8>> = Generic::default();
     assert!(nested.held.is_empty());
@@ -73,13 +88,18 @@ fn generics_carry_through_to_the_impl() {
 fn a_bound_on_the_parameter_survives() {
     // `split_for_impl` puts the bound on the impl rather than dropping it or repeating
     // it in argument position, which is the difference between this compiling and not.
-    assert_eq!(Bounded::<u8>::default(), Bounded { held: 0 });
+    assert_eq!(
+        Bounded::<u8>::default(),
+        Bounded {
+            held: 0
+        }
+    );
 }
 
 #[derive(DefaultImpl, Debug, PartialEq)]
 struct Phantom<T> {
     marker: core::marker::PhantomData<T>,
-    count:  u8,
+    count: u8,
 }
 
 /// A type with no `Default` of its own, to stand in the phantom slot.
@@ -97,7 +117,13 @@ fn a_parameter_no_field_uses_still_gets_the_bound() {
     // `Phantom<NotDefault>` has no `Default` even though nothing in it needs one.
     // Reproducing that is the claim, and this is what pins it.
     let with_default: Phantom<u8> = Phantom::default();
-    assert_eq!(with_default, Phantom { marker: core::marker::PhantomData, count: 0 });
+    assert_eq!(
+        with_default,
+        Phantom {
+            marker: core::marker::PhantomData,
+            count: 0
+        }
+    );
 
     // And the other half, as a compile-fail case: `Phantom::<NotDefault>::default()` must
     // not resolve. It lives in `arm_matrix_test/tests/ui/`, because a refusal asserted in

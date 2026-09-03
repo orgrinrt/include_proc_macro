@@ -117,13 +117,31 @@ fn main() {
     println!("derived display  : {}", Mode::Fast);
 
     // Forms 4 and 5.
-    let registration = Registration { name: Some("orgrinrt".to_string()), age: Some(34) };
+    let registration = Registration {
+        name: Some("orgrinrt".to_string()),
+        age: Some(34),
+    };
     println!("validate present : {}", registration.validate().is_ok());
-    println!("node category    : {} (declared: {})", Leaf::node_category(), Leaf::has_category());
-    println!("leaf depth       : {}", Leaf { depth: 0 }.depth);
+    println!(
+        "node category    : {} (declared: {})",
+        Leaf::node_category(),
+        Leaf::has_category()
+    );
+    println!(
+        "leaf depth       : {}",
+        Leaf {
+            depth: 0
+        }
+        .depth
+    );
 
     // Forms 2 and 8. The doc comment the attribute wrote is on the constant, and the
     // `Debug` the other one added is what prints here.
     println!("documented const : {}", RETRY_BUDGET);
-    println!("derive added     : {:?}", Traced { step: 2 });
+    println!(
+        "derive added     : {:?}",
+        Traced {
+            step: 2
+        }
+    );
 }

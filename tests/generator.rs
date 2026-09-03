@@ -65,17 +65,26 @@ fn snapshot() -> Vec<(String, Vec<u8>)> {
 #[test]
 fn the_generator_survives_its_own_run_and_changes_nothing() {
     let before = snapshot();
-    assert!(!before.is_empty(), "the generated trees are missing entirely");
+    assert!(
+        !before.is_empty(),
+        "the generated trees are missing entirely"
+    );
 
     let report = generate();
-    assert!(report.contains("106 cells, 106 assertions"), "unexpected report: {report}");
+    assert!(
+        report.contains("106 cells, 106 assertions"),
+        "unexpected report: {report}"
+    );
 
     let after = snapshot();
 
     // Per file, so a failure names the one that moved rather than only saying something did.
     let before_paths: Vec<&String> = before.iter().map(|(p, _)| p).collect();
     let after_paths: Vec<&String> = after.iter().map(|(p, _)| p).collect();
-    assert_eq!(before_paths, after_paths, "regenerating added or removed files");
+    assert_eq!(
+        before_paths, after_paths,
+        "regenerating added or removed files"
+    );
 
     for ((path, was), (_, now)) in before.iter().zip(after.iter()) {
         assert!(was == now, "regenerating changed {path}");
@@ -84,11 +93,15 @@ fn the_generator_survives_its_own_run_and_changes_nothing() {
     // Named explicitly, because this is the file that went missing and an empty diff is
     // also what a generator that wrote nothing at all would leave.
     assert!(
-        std::path::Path::new(ROOT).join("scripts/generate_arm_matrix.py").exists(),
+        std::path::Path::new(ROOT)
+            .join("scripts/generate_arm_matrix.py")
+            .exists(),
         "the generator deleted itself",
     );
     assert!(
-        std::path::Path::new(ROOT).join("arm_matrix_test/tests").exists(),
+        std::path::Path::new(ROOT)
+            .join("arm_matrix_test/tests")
+            .exists(),
         "the hand-written compile-fail suite was removed with the generated trees",
     );
 }
@@ -97,11 +110,12 @@ fn the_generator_survives_its_own_run_and_changes_nothing() {
 fn the_generator_refuses_to_run_from_inside_a_tree_it_deletes() {
     // The guard, exercised. Without this the check above passes for as long as nobody moves
     // the script back, and moving it back is exactly what a future tidy-up would do.
-    let doomed = std::path::Path::new(ROOT).join("arm_matrix").join("_guard_probe.py");
-    let source = std::fs::read_to_string(
-        std::path::Path::new(ROOT).join("scripts/generate_arm_matrix.py"),
-    )
-    .expect("the generator source");
+    let doomed = std::path::Path::new(ROOT)
+        .join("arm_matrix")
+        .join("_guard_probe.py");
+    let source =
+        std::fs::read_to_string(std::path::Path::new(ROOT).join("scripts/generate_arm_matrix.py"))
+            .expect("the generator source");
 
     std::fs::write(&doomed, source).expect("the probe copy");
 
@@ -114,7 +128,10 @@ fn the_generator_refuses_to_run_from_inside_a_tree_it_deletes() {
     // Removed before asserting, so a failure does not leave it behind for the test above.
     let _ = std::fs::remove_file(&doomed);
 
-    assert!(!output.status.success(), "the guard let it run from inside arm_matrix/");
+    assert!(
+        !output.status.success(),
+        "the guard let it run from inside arm_matrix/"
+    );
     assert!(
         String::from_utf8_lossy(&output.stderr).contains("refusing to run"),
         "the refusal says why:\n{}",

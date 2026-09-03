@@ -36,7 +36,12 @@ fn main() {
     println!("7 is {}", fizz!(7));
 
     // The attribute wrote the `Debug` impl.
-    println!("{:?}", Counted { hits: 3 });
+    println!(
+        "{:?}",
+        Counted {
+            hits: 3
+        }
+    );
 
     // The derive wrote the `Display` impl.
     println!("{Named}");
