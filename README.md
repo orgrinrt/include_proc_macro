@@ -200,8 +200,16 @@ pub fn Display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 There are also three runnable examples under `integration_test/examples/` in the repository, one
 with a single function-like macro, one reaching all three kinds from one block, and one walking
-every path form in the table with a line of output per form. `cargo test` runs them and checks what
-each one prints, so an example that compiles and then prints the wrong thing is a failing test.
+every path form in the table with a line of output per form:
+
+```text
+cargo run -p integration_test --example one_function_macro
+cargo run -p integration_test --example all_three_kinds
+cargo run -p integration_test --example every_path_form
+```
+
+`cargo test` runs them too and checks what each one prints, so an example that compiles and then
+prints the wrong thing is a failing test.
 
 ## Motivation
 
@@ -219,17 +227,15 @@ module tree, having the macro tests somewhere sensible, or whatever else calls f
 
 As for the cost, it's a compile-time dependency for the proc-macro crate and nothing beyond that,
 and it pulls nothing in itself. `macros!` recurses once per declaration rather than once per token,
-so a long list stays well inside rustc's default recursion limit of 128; a hundred declarations in
-one invocation is asserted in the test suite. Past that, splitting the list or raising
-`#![recursion_limit]` both work.
+and a hundred declarations in one invocation is what the test suite asserts under rustc's default
+recursion limit of 128. Past that, splitting the list or raising `#![recursion_limit]` both work.
 
 ## Extras
 
 ### Status
 
-Every release is tagged and the log between two tags is what actually moved, so that's the place to
-check before bumping, and the refusals are pinned by the compile-fail suite.
-The floor is rust 1.56, which is what edition 2021 needs, and the manifest's `rust-version` says so.
+Every release is tagged and the log between two tags is what actually moved. The floor is rust
+1.56, which is what edition 2021 needs, and the manifest's `rust-version` says so.
 
 ### Cargo features
 
