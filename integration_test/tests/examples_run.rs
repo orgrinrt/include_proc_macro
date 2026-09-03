@@ -38,15 +38,30 @@ fn all_three_kinds_reaches_every_kind() {
     let out = run_example("all_three_kinds");
 
     // A function-like macro, on each of the three interesting inputs.
-    assert!(out.contains("3 is Fizz"), "no function-like output in:\n{out}");
-    assert!(out.contains("5 is Buzz"), "no function-like output in:\n{out}");
-    assert!(out.contains("15 is FizzBuzz"), "no function-like output in:\n{out}");
+    assert!(
+        out.contains("3 is Fizz"),
+        "no function-like output in:\n{out}"
+    );
+    assert!(
+        out.contains("5 is Buzz"),
+        "no function-like output in:\n{out}"
+    );
+    assert!(
+        out.contains("15 is FizzBuzz"),
+        "no function-like output in:\n{out}"
+    );
 
     // An attribute macro, which added the `Debug` this line prints through.
-    assert!(out.contains("Counted { hits: 3 }"), "no attribute output in:\n{out}");
+    assert!(
+        out.contains("Counted { hits: 3 }"),
+        "no attribute output in:\n{out}"
+    );
 
     // A derive, which wrote the `Display` impl.
-    assert!(out.contains("This is a Named"), "no derive output in:\n{out}");
+    assert!(
+        out.contains("This is a Named"),
+        "no derive output in:\n{out}"
+    );
 }
 
 #[test]

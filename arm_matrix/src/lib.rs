@@ -263,4 +263,3 @@ include_proc_macro::macros!(
     function(bulk98) -> use bulk::i98,
     function(bulk99) -> use bulk::i99,
 );
-

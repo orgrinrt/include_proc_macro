@@ -1,4 +1,4 @@
-import os, shutil, sys
+import glob, os, re, shutil, subprocess, sys
 root="arm_matrix"; tst="arm_matrix_test"
 
 # This script lives in `scripts/` rather than in `arm_matrix/`, which is the tree it is
@@ -166,4 +166,11 @@ include_proc_macro = { path = "../" }
 # Dev-only, so the published crate keeps its empty dependency list.
 trybuild = "1.0"
 """)
+
+# Formatted last, so what this writes is what `cargo fmt --check` accepts; without this
+# the format gate and the regeneration test could not both pass on one tree. The edition
+# is read back off the manifest written above, so the two cannot disagree.
+edition = re.search(r'^edition = "(\d+)"$', open(f"{root}/Cargo.toml").read(), re.M).group(1)
+written = sorted(glob.glob(f"{root}/src/**/*.rs", recursive=True) + [f"{tst}/src/lib.rs"])
+subprocess.run(["rustfmt", "--edition", edition, *written], check=True)
 print(f"{len(cells)} cells, {len(asserts)} assertions")

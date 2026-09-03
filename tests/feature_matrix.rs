@@ -58,7 +58,10 @@ fn the_macros_still_expand_under_no_alloc() {
     // exists to do still works, at every path form and declaration shape the matrix covers.
     // The feature is named on the package that has it: `-p arm_matrix_test` with a bare
     // `no_alloc` asks the test crate for a feature it does not declare.
-    let (ok, err) = cargo(&["test", "-p", "arm_matrix_test"], &["include_proc_macro/no_alloc"]);
+    let (ok, err) = cargo(
+        &["test", "-p", "arm_matrix_test"],
+        &["include_proc_macro/no_alloc"],
+    );
     assert!(ok, "the arm matrix passes under no_alloc:\n{err}");
 }
 
@@ -108,7 +111,11 @@ fn the_declared_minimum_toolchain_builds_the_crate() {
     // README this copy does not have.
     let lib = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"))
         .expect("the crate source");
-    let lib: String = lib.lines().filter(|line| !line.starts_with("#![doc")).collect::<Vec<_>>().join("\n");
+    let lib: String = lib
+        .lines()
+        .filter(|line| !line.starts_with("#![doc"))
+        .collect::<Vec<_>>()
+        .join("\n");
     std::fs::write(root.join("src").join("lib.rs"), lib).expect("the msrv source");
 
     let output = Command::new("cargo")
