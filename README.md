@@ -8,88 +8,52 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/include_proc_macro.svg)](https://github.com/orgrinrt/include_proc_macro/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/include_proc_macro?color=%23009689)
 
-> One macro for working with several procedural macros in a crate, importable from arbitrary paths.
+> A `macro_rules!` for declaring several procedural macros in one crate, with the implementations wherever they happen to live.
 
 </div>
 
-## The problem
+Every procedural macro has to be a public function at the root of a proc-macro crate, carrying the
+right attribute and the exact signature for its kind, but the implementation doesn't have to be
+there, and in a crate with more than a handful of macros it probably shouldn't be. What ends up at
+the root is then a stack of delegating stubs, a `mod` line, an attribute, a signature and a one-line
+body forwarding to the real function, repeated once per macro with only the names changing between
+them.
 
-Rust requires every procedural macro to be a public function at the root of a proc-macro
-crate, carrying the right attribute and the exact signature for its kind. The
-implementations do not have to live there, and in any crate with more than a handful of
-macros they should not, so the root fills up with delegating stubs: a `mod` line, an
-attribute, a signature, and a one-line body that forwards to the real code.
+This crate writes those stubs. A declaration says what kind of macro it is, what it's called and
+where the implementation is, and the delegation is generated from that, including the `mod`
+declaration where one is needed. The implementations stay ordinary functions in ordinary modules,
+or in files outside the module tree altogether, since a path form exists for that too.
 
-None of that carries information. It is the same four lines each time, and the only part
-that varies is which function is being forwarded to.
+It's `macro_rules!` only, with no dependencies of its own, so all of it happens during expansion and
+nothing new reaches the compiled artifact. Crates using the macros aren't affected either way, as
+they depend on the proc-macro crate and never on this one.
 
-This crate writes those stubs. You say what kind of macro it is, what it is called, and
-where the implementation lives, and the delegation is generated. There is nothing at
-runtime and no dependencies; it is one `macro_rules!` file that expands to the code you
-would otherwise type.
-
-## Installation
+## Usage
 
 ```bash
 cargo add include_proc_macro
 ```
 
-Or in `Cargo.toml`:
-
-```toml
-[dependencies]
-include_proc_macro = "2.1"
-```
-
-## Usage
+The three kinds each have a macro of their own, `proc_macro!`, `attr_macro!` and `derive_macro!`,
+and `macros!` declares any number of them in one block. Each takes a name on the left and an
+implementation path on the right, and the derive one takes its name in parentheses, since a derive
+may also declare helper attributes there:
 
 ```rust,ignore
-use include_proc_macro::macros;
-
-macros!(
-    // A function-like macro. Declares `mod parsing` and forwards to it.
-    function(sql) -> parsing::parse_sql,
-    // The name can be left out, and is then taken from the last path segment,
-    // so this one is called `tokenize`.
-    function -> parsing::tokenize,
-    // `parsing` is already declared by the first entry, so say `use` rather
-    // than declaring it a second time.
-    function(lex) -> use parsing::lex,
-
-    // An attribute macro. Its implementation takes two token streams.
-    attribute(instrument) -> tracing_impl::instrument,
-    // Modules nest to any depth.
-    attribute(cached) -> caching::memo::store::apply,
-
-    // A derive. The name in parentheses is what deriving types write.
-    derive(Builder) -> derives::builder,
-    // Helper attributes go beside it, and there can be any number.
-    derive(Validate, attributes(required, length, range)) -> derives::validate,
-
-    // The implementation can also be a file that is not part of the module tree,
-    // named relative to this one.
-    function(greet) -> "impls/hello.rs"::greet,
-    // Or relative to the crate root, with a leading `@`.
-    derive(Display) -> @"tests/fixtures/display.rs"::display,
-);
+include_proc_macro::proc_macro!(sql -> parsing::parse_sql);
+include_proc_macro::attr_macro!(instrument -> tracing_impl::instrument);
+include_proc_macro::derive_macro!((Validate, attributes(required)) -> derives::validate);
 ```
 
-The implementations are ordinary functions. They carry no `#[proc_macro]` attribute,
-because they cannot: that attribute is only legal at the crate root, which is the
-restriction being worked around.
+Do note that every rust block in here that declares a macro is marked `ignore`. The output carries
+`#[proc_macro]`, which rustc accepts only in a crate whose manifest says `proc-macro = true`, and a
+doctest is compiled as an ordinary crate, so these can't run as doctests whatever they contain. They
+are checked elsewhere instead, in the `arm_matrix_test/` crate of the repository, which asserts every
+path form against every kind of macro and every way of naming one, with the refusals in a
+compile-fail suite of their own.
 
-```rust,ignore
-// parsing.rs
-use proc_macro::TokenStream;
-
-pub fn parse_sql(input: TokenStream) -> TokenStream { /* ... */ }
-pub fn tokenize(input: TokenStream) -> TokenStream { /* ... */ }
-```
-
-### Where an implementation can be
-
-The same forms work for all three kinds of macro and in every position, because they are
-read by one shared piece of the crate rather than reimplemented per kind.
+The implementation path takes the same forms for all three kinds, and in the list form too, because
+one shared piece of the crate reads them, whichever kind is being declared:
 
 | Form | Means |
 |---|---|
@@ -104,67 +68,72 @@ read by one shared piece of the crate rather than reimplemented per kind.
 | `"path/to/file.rs"::f` | a file, named relative to the invocation |
 | `@"path/from/crate/root.rs"::f` | a file, named relative to the crate root |
 
-Leaving the macro name out is available for `function` and `attribute`, and takes the
-name from the path's last segment. It is refused for a path that is a bare name, because
-the generated item would then take that same name in that same scope and shadow the
-function it means to call. A derive always names itself, since the name is what the
-deriving type writes.
+The `mod` form is what a bare path means anyway, so it's there for readability, and `use` is for a
+module that some earlier line already declared, since declaring it twice is an error. Leaving the
+macro name out is possible in the list form for `function` and `attribute`, in which case the name
+comes from the last segment of the path, though it's refused for a path that is a bare name, as the
+generated item would then take the same name in the same scope and shadow the function it means to
+call. A derive always names itself, since the name is what the deriving type writes.
 
-### The single forms
+## Example
 
-`macros!` is a convenience over three macros that do one declaration each, and they are
-available directly when that reads better:
+Here's a proc-macro crate root with all three kinds in one block, and most of the path forms in
+use. The comments say what each line does:
 
 ```rust,ignore
-include_proc_macro::proc_macro!(sql -> parsing::parse_sql);
-include_proc_macro::attr_macro!(instrument -> tracing_impl::instrument);
-include_proc_macro::derive_macro!((Validate, attributes(required)) -> derives::validate);
+use include_proc_macro::macros;
+
+macros!(
+    // a function-like macro; declares `mod parsing` and forwards to it
+    function(sql) -> parsing::parse_sql,
+    // no name given, so it's taken from the last segment: `tokenize`
+    function -> parsing::tokenize,
+    // `parsing` was declared above, so `use` it; a second `mod parsing` would be an error
+    function(lex) -> use parsing::lex,
+
+    // an attribute macro; the implementation takes two token streams
+    attribute(instrument) -> tracing_impl::instrument,
+    // modules nest to any depth
+    attribute(cached) -> caching::memo::store::apply,
+
+    // a derive; the name in parentheses is what deriving types write
+    derive(Builder) -> derives::builder,
+    // helper attributes go beside it, any number of them
+    derive(Validate, attributes(required, length, range)) -> derives::validate,
+
+    // a file outside the module tree, relative to this one
+    function(greet) -> "impls/hello.rs"::greet,
+    // or relative to the crate root, with a leading `@`
+    derive(Display) -> @"tests/fixtures/display.rs"::display,
+);
 ```
 
-## Why the examples say `ignore`
+The implementations on the other side are plain functions with the token stream signature of their
+kind and no attribute on them, as the attribute is only legal at the crate root, which is the
+restriction being worked around here:
 
-Every code block here is marked `rust,ignore`, and that is structural rather than
-neglect. These macros expand to items carrying `#[proc_macro]`, which rustc accepts only
-in a crate whose manifest sets `proc-macro = true`. A doctest is compiled as an ordinary
-crate, so a doctest of this crate cannot be made to pass no matter what it contains.
+```rust
+# extern crate proc_macro;
+// parsing.rs
+use proc_macro::TokenStream;
 
-What checks them instead is `arm_matrix/` and `arm_matrix_test/` in the repository: every
-form in the table above, against every kind of macro and every way of declaring one, each
-asserted to produce its own distinct output. The refusals have their own compile-fail
-suite. A form that appears in this README and does not work is a failing build there.
+pub fn parse_sql(input: TokenStream) -> TokenStream {
+    // the actual work goes here
+    input
+}
 
-## Runnable examples
+pub fn tokenize(input: TokenStream) -> TokenStream {
+    input
+}
 
-Three of them, under `integration_test/examples/`, each runnable on its own:
-
-```text
-cargo run -p integration_test --example one_function_macro
-cargo run -p integration_test --example all_three_kinds
-cargo run -p integration_test --example every_path_form
+pub fn lex(input: TokenStream) -> TokenStream {
+    input
+}
 ```
 
-The first is the smallest thing that works: one function-like macro, declared and called.
-The second reaches all three kinds of macro from one declaration block. The third walks
-every path form in the table above, one line of output per form.
-
-They are run by `cargo test`, in `integration_test/tests/examples_run.rs`, which checks
-what each one prints rather than only that it built.
-
-## Features
-
-Neither changes what the crate does, and both exist so a consumer can name them.
-
-| Feature | Effect |
-|---|---|
-| `no_std` | Adds `#![no_std]`. The crate is `macro_rules!` only, so this is the attribute and nothing more. |
-| `no_alloc` | Implies `no_std`. States what is already true: nothing here allocates. |
-
-What a macro from here expands into is a `#[proc_macro]` entry point, and a proc-macro
-crate cannot be `no_std` whatever this crate does, because it runs on the host inside the
-compiler. `tests/feature_matrix.rs` builds under each selection and asserts the macros
-still expand.
-
-## What you would write otherwise
+Though it doesn't look like much, that block above stands in for quite a lot of typing, and the
+average crate would probably not have this many macros in one place anyway. The comparison is
+below, if the difference is worth seeing spelled out.
 
 <details>
 <summary>The same nine declarations, by hand</summary>
@@ -229,19 +198,65 @@ pub fn Display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 </details>
 
-## Cost
+There are also three runnable examples under `integration_test/examples/` in the repository, one
+with a single function-like macro, one reaching all three kinds from one block, and one walking
+every path form in the table with a line of output per form. `cargo test` runs them and checks what
+each one prints, so an example that compiles and then prints the wrong thing is a failing test.
 
-All of it happens during expansion, so nothing reaches the compiled artifact that you
-would not have written yourself, and crates that *use* your macros are unaffected: they
-depend on your proc-macro crate, not on this one. Your own crate takes one more
-dependency to compile, which has no dependencies of its own.
+## Motivation
 
-`macros!` recurses once per declaration rather than once per token, which keeps a long
-list comfortably inside the default recursion limit of 128. A hundred declarations in a
-single invocation is asserted in the test suite. Well past that, either split the list or
-raise `#![recursion_limit]`.
+Rust's procedural macro system wants every proc macro defined at the crate root, which either
+leaves the root module gigantic and hard to find anything in, or, if the implementations are moved out into
+modules the way this crate does underneath, leaves it full of the same delegation written over and
+over, with all the attributes and signatures spelled out each time. It's tedious more than
+anything, and in a larger proc-macro crate with several kinds of macro in it, the root stops saying
+anything useful about what the crate exports.
+
+So the point here is a declaration list that reads as an index of the crate, one line per macro
+saying its kind, its name and where the code is, with the delegation generated instead of typed.
+The file forms are a side benefit of the same mechanism, for keeping implementations apart from the
+module tree, having the macro tests somewhere sensible, or whatever else calls for a path.
+
+As for the cost, it's a compile-time dependency for the proc-macro crate and nothing beyond that,
+and it pulls nothing in itself. `macros!` recurses once per declaration rather than once per token,
+so a long list stays well inside rustc's default recursion limit of 128; a hundred declarations in
+one invocation is asserted in the test suite. Past that, splitting the list or raising
+`#![recursion_limit]` both work.
+
+## Extras
+
+### Status
+
+Every release is tagged and the log between two tags is what actually moved, so that's the place to
+check before bumping, and the refusals are pinned by the compile-fail suite.
+The floor is rust 1.56, which is what edition 2021 needs, and the manifest's `rust-version` says so.
+
+### Cargo features
+
+| Feature | Default | Effect |
+|---|---|---|
+| `no_std` | off | Adds `#![no_std]` to this crate, which is the attribute and nothing more, as there's no code in here to be affected by it. |
+| `no_alloc` | off | Implies `no_std`. States what is already the case, since nothing here allocates. |
+
+Both exist so a workspace turning them on everywhere can name them without the build failing on an
+unknown feature. Neither changes what the macros expand to, and `tests/feature_matrix.rs` builds
+under each selection and asserts they still expand.
+
+### Limitations
+
+What the macros expand into is a `#[proc_macro]` entry point, and a proc-macro crate can't be
+`no_std` whatever this one declares, because it runs on the host inside the compiler. So the
+features above are about this crate, and say nothing about the crate using it.
+
+There's no `super::` path form, deliberately, since a procedural macro item has to sit at the crate
+root and the root has no parent. An absolute path works in the plain literal form, since it goes straight into
+`#[path]`, though what that means for portability is outside this crate's scope.
 
 ## Support
+
+Feel free to contribute! If unsure about wasting work, the best practice is to throw in an issue describing what you'd do, and only then commit to writing a big PR, because chances are, it might not be something that belongs here. However, forks are always a valid choice and we'd encourage everyone to experiment and have their own takes on this. When doing this, do mind the license(s) though!
+
+A new path form or a new refusal wants a row in the arm matrix and a case in the compile-fail suite beside it, since that is what keeps the three kinds agreeing with each other.
 
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
